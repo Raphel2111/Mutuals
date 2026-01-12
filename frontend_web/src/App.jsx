@@ -14,6 +14,8 @@ import ErrorBoundary from './ErrorBoundary';
 
 import ProfileCompletionModal from './components/ProfileCompletionModal';
 
+import BottomNavigation from './components/BottomNavigation';
+
 function App() {
     const [view, setView] = useState('events');
     const [authenticated, setAuthenticated] = useState(!!localStorage.getItem('access_token'));
@@ -141,24 +143,21 @@ function App() {
                             <BrandLogo />
                             <h1 style={{ margin: 0, fontSize: '1.5em' }}>La Terreta</h1>
                         </div>
-                        <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-                            {mobileMenuOpen ? '✕' : '☰'}
-                        </button>
-                    </div>
+                        {/* Mobile Menu Button Removed in favor of Bottom Nav (hidden via CSS) */}
+                        <div className="mobile-menu-btn" style={{ display: 'none' }}></div>
 
-                    <div className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
-                        <button className={`btn nav-item ${view === 'events' ? 'active' : ''}`} onClick={() => { setView('events'); setMobileMenuOpen(false); }}>📅 Eventos</button>
-                        {authenticated && (
-                            <>
-                                <button className={`btn nav-item ${view === 'registrations' ? 'active' : ''}`} onClick={() => { setView('registrations'); setMobileMenuOpen(false); }}>🎟️ Mis Entradas</button>
-                                <button className={`btn nav-item ${view === 'groups' ? 'active' : ''}`} onClick={() => { setView('groups'); setMobileMenuOpen(false); }}>👥 Mis Grupos</button>
-                            </>
+                        {/* Auth buttons for mobile header if needed, but usually in bottom nav profiles or separate */}
+                        {!authenticated && (
+                            <div className="mobile-auth-btn" style={{ display: 'none' }}>
+                                {/* Placeholder if we want login button in header on mobile */}
+                            </div>
                         )}
 
-                        <div className="nav-user-section">
+                        {/* Desktop User Section (Visible > 768px via CSS) */}
+                        <div className="nav-user-section desktop-only" style={{ marginLeft: 'auto', display: 'flex' }}>
                             {currentUser ? (
                                 <div className="user-profile-widget">
-                                    <div className="user-info" onClick={() => { setView('profile'); setMobileMenuOpen(false); }}>
+                                    <div className="user-info" onClick={() => setView('profile')}>
                                         {currentUser.avatar_url ? (
                                             <img src={currentUser.avatar_url} alt={currentUser.username} className="avatar-small" />
                                         ) : (
@@ -166,27 +165,38 @@ function App() {
                                         )}
                                         <div className="user-details">
                                             <span className="username">{currentUser.username}</span>
-                                            <span className="email">{currentUser.email}</span>
                                         </div>
                                     </div>
-                                    <button className="btn logout-btn" onClick={() => { localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); setAuthenticated(false); setMobileMenuOpen(false); }}>
+                                    <button className="btn logout-btn" onClick={() => { localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); setAuthenticated(false); }}>
                                         Salir
                                     </button>
                                 </div>
                             ) : (
                                 <div className="auth-buttons">
                                     {!showRegister ? (
-                                        <button className="btn primary" onClick={() => { setShowRegister(true); setMobileMenuOpen(false); }}>Acceder</button>
+                                        <button className="btn primary" onClick={() => setShowRegister(true)}>Acceder</button>
                                     ) : (
-                                        <button className="btn secondary" onClick={() => { setShowRegister(false); setMobileMenuOpen(false); }}>Login</button>
+                                        <button className="btn secondary" onClick={() => setShowRegister(false)}>Login</button>
                                     )}
                                 </div>
                             )}
                         </div>
+
+                    </div>
+
+                    <div className="nav-links">
+                        <button className={`btn nav-item ${view === 'events' ? 'active' : ''}`} onClick={() => setView('events')}>📅 Eventos</button>
+                        {authenticated && (
+                            <>
+                                <button className={`btn nav-item ${view === 'registrations' ? 'active' : ''}`} onClick={() => setView('registrations')}>🎟️ Mis Entradas</button>
+                                <button className={`btn nav-item ${view === 'groups' ? 'active' : ''}`} onClick={() => setView('groups')}>👥 Mis Grupos</button>
+                            </>
+                        )}
                     </div>
                 </div>
             </nav>
-            <div style={{ flex: 1 }}>
+
+            <div style={{ flex: 1 }} className="pb-safe">
                 {!authenticated && view !== 'join' && !showRegister && (
                     <Login
                         onLogin={() => {
@@ -267,6 +277,12 @@ function App() {
                 ) : null}
 
             </div>
+
+            <BottomNavigation
+                activeView={view}
+                onNavigate={setView}
+                authenticated={authenticated}
+            />
         </div>
     );
 }

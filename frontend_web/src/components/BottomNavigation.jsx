@@ -11,33 +11,29 @@ export default function BottomNavigation({ activeView, onNavigate, authenticated
                 <div className="label">Eventos</div>
             </button>
 
-            {authenticated && (
-                <>
-                    <button
-                        className={`bottom-nav-item ${activeView === 'registrations' ? 'active' : ''}`}
-                        onClick={() => onNavigate('registrations')}
-                    >
-                        <div className="icon">🎟️</div>
-                        <div className="label">Entradas</div>
-                    </button>
+            <button
+                className={`bottom-nav-item ${activeView === 'registrations' ? 'active' : ''}`}
+                onClick={() => onNavigate('registrations')}
+            >
+                <div className="icon">🎟️</div>
+                <div className="label">Entradas</div>
+            </button>
 
-                    <button
-                        className={`bottom-nav-item ${activeView === 'groups' ? 'active' : ''}`}
-                        onClick={() => onNavigate('groups')}
-                    >
-                        <div className="icon">👥</div>
-                        <div className="label">Grupos</div>
-                    </button>
+            <button
+                className={`bottom-nav-item ${activeView === 'groups' ? 'active' : ''}`}
+                onClick={() => onNavigate('groups')}
+            >
+                <div className="icon">👥</div>
+                <div className="label">Grupos</div>
+            </button>
 
-                    <button
-                        className={`bottom-nav-item ${activeView === 'profile' ? 'active' : ''}`}
-                        onClick={() => onNavigate('profile')}
-                    >
-                        <div className="icon">👤</div>
-                        <div className="label">Perfil</div>
-                    </button>
-                </>
-            )}
+            <button
+                className={`bottom-nav-item ${activeView === 'profile' ? 'active' : ''}`}
+                onClick={() => onNavigate('profile')}
+            >
+                <div className="icon">👤</div>
+                <div className="label">Perfil</div>
+            </button>
         </div>
     );
 }

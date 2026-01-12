@@ -197,7 +197,7 @@ function App() {
             </nav>
 
             <div style={{ flex: 1 }} className="pb-safe">
-                {!authenticated && view !== 'join' && !showRegister && (
+                {!authenticated && view !== 'join' && !showRegister && view !== 'registrations' && view !== 'groups' && view !== 'profile' && (
                     <Login
                         onLogin={() => {
                             setAuthenticated(true);
@@ -240,9 +240,9 @@ function App() {
                 ) : view === 'registrations' ? (
                     <div className="container">
                         <div className="card" style={{ textAlign: 'center' }}>
-                            <h2>Acceso restringido</h2>
-                            <p>Debes iniciar sesión para ver tus inscripciones</p>
-                            <button className="btn" onClick={() => setView('events')}>Volver a Eventos</button>
+                            <h3>Debes iniciar sesión</h3>
+                            <p className="muted">Para ver tus entradas, accede con tu cuenta.</p>
+                            <button className="btn full" onClick={() => { setShowRegister(true); }}>Acceder / Registrarse</button>
                         </div>
                     </div>
                 ) : null}
@@ -251,9 +251,9 @@ function App() {
                 ) : view === 'groups' ? (
                     <div className="container">
                         <div className="card" style={{ textAlign: 'center' }}>
-                            <h2>Acceso restringido</h2>
-                            <p>Debes iniciar sesión para ver tus grupos</p>
-                            <button className="btn" onClick={() => setView('events')}>Volver a Eventos</button>
+                            <h3>Debes iniciar sesión</h3>
+                            <p className="muted">Para ver tus grupos, accede con tu cuenta.</p>
+                            <button className="btn full" onClick={() => { setShowRegister(true); }}>Acceder / Registrarse</button>
                         </div>
                     </div>
                 ) : null}
@@ -268,11 +268,22 @@ function App() {
                     </ErrorBoundary>
                 ) : view === 'profile' ? (
                     <div className="container">
-                        <div className="card" style={{ textAlign: 'center' }}>
-                            <h2>Acceso restringido</h2>
-                            <p>Debes iniciar sesión para ver tu perfil</p>
-                            <button className="btn" onClick={() => setView('events')}>Volver a Eventos</button>
-                        </div>
+                        {!authenticated && !showRegister ? (
+                            <Login
+                                onLogin={() => {
+                                    setAuthenticated(true);
+                                    setShowRegister(false);
+                                    setView('profile');
+                                }}
+                                onShowRegister={() => setShowRegister(true)}
+                            />
+                        ) : (
+                            <div className="card" style={{ textAlign: 'center' }}>
+                                <h2>Acceso restringido</h2>
+                                <p>Debes iniciar sesión para ver tu perfil</p>
+                                <button className="btn" onClick={() => setShowRegister(true)}>Acceder</button>
+                            </div>
+                        )}
                     </div>
                 ) : null}
 

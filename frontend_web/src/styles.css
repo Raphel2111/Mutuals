@@ -254,9 +254,13 @@ select {
 	color: #1e293b;
 }
 
-outline: none;
-border-color: var(--primary);
-box-shadow: 0 0 0 2px var(--primary-light);
+input:focus,
+textarea:focus,
+select:focus {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 2px var(--primary-light);
+}
 
 .form-row {
 	margin-bottom: 20px;

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios, { getBackendUrl } from '../api';
+import QRScanner from './QRScanner';
 
 export default function EventAccessManager({ event, currentUser }) {
-    const [activeTab, setActiveTab] = useState('list'); // 'list', 'manual', 'attended'
+    const [activeTab, setActiveTab] = useState('list'); // 'list', 'manual', 'attended', 'scan'
     const [registrations, setRegistrations] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -25,8 +26,7 @@ export default function EventAccessManager({ event, currentUser }) {
                 // Wait, the 'participants' endpoint returns Users.
                 // We need the raw registrations list for this management view.
                 // Let's use the export_registrations logic but as JSON? 
-                // Or maybe existing 'registrations/' endpoint filter by event.
-                // Yes: GET /registrations/?event={id}
+                // Or maybe existing 'registrations/?event={id}' endpoint.
                 return axios.get(`registrations/?event=${event.id}`);
             })
             .then(res => {
@@ -83,10 +83,6 @@ export default function EventAccessManager({ event, currentUser }) {
 
     // Filter Lists
     const attendedList = registrations.filter(r => r.attended_at);
-    // Generated list is basically all registrations (or unused ones? The user wanted "QR generados" vs "QR asistieron". All generated includes attended ones, but maybe they want separated?)
-    // "Lista 1: QR generados (Mostrar: nombre, usuario, codigo...)"
-    // "Lista 2: QR que han asistido (Mostrar: nombre, usuario, fecha...)"
-    // So distinct lists.
 
     return (
         <div style={{ marginTop: 20, padding: 20, backgroundColor: 'white', borderRadius: 8, boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
@@ -107,6 +103,13 @@ export default function EventAccessManager({ event, currentUser }) {
                     ✅ Asistentes ({attendedList.length})
                 </button>
                 <button
+                    className={`btn ${activeTab === 'scan' ? 'primary' : 'secondary'}`}
+                    onClick={() => setActiveTab('scan')}
+                    style={{ backgroundColor: '#e0f2fe', color: '#0369a1', borderColor: '#0ea5e9' }}
+                >
+                    📷 Escanear QR
+                </button>
+                <button
                     className={`btn ${activeTab === 'manual' ? 'primary' : 'secondary'}`}
                     onClick={() => setActiveTab('manual')}
                     style={{ backgroundColor: '#fef3c7', color: '#92400e', borderColor: '#f59e0b' }}
@@ -123,6 +126,13 @@ export default function EventAccessManager({ event, currentUser }) {
                     📊 Exportar Excel
                 </button>
             </div>
+
+            {/* TAB: SCANNER */}
+            {activeTab === 'scan' && (
+                <div style={{ marginTop: 20 }}>
+                    <QRScanner eventId={event.id} onBack={() => setActiveTab('list')} />
+                </div>
+            )}
 
             {/* TAB: MANUAL GENERATION */}
             {activeTab === 'manual' && (

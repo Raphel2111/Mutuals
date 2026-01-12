@@ -179,10 +179,20 @@ class EventViewSet(viewsets.ModelViewSet):
         
         # Check permissions
         user = request.user
+        if not user.is_authenticated:
+            return Response({'detail': 'Debes iniciar sesión.'}, status=status.HTTP_401_UNAUTHORIZED)
+            
         is_event_admin = event.admins.filter(pk=user.pk).exists()
-        is_group_admin = event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists())
+        
+        is_group_admin = False
+        if event.group:
+            is_group_admin = (
+                event.group.admins.filter(pk=user.pk).exists() or 
+                event.group.creators.filter(pk=user.pk).exists()
+            )
         
         if not (user.is_staff or is_event_admin or is_group_admin):
+             print(f"DEBUG EXPORT DENIED: User {user.id} Event {event.id} Group {event.group_id if event.group else 'None'} | Staff:{user.is_staff} EvAdmin:{is_event_admin} GrpAdmin:{is_group_admin}")
              return Response({'detail': 'No tienes permisos para exportar.'}, status=status.HTTP_403_FORBIDDEN)
              
         import csv

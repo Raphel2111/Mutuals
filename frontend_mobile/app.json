@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "frontend_mobile",
-    "slug": "frontend_mobile",
+    "name": "La Terreta",
+    "slug": "la-terreta",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

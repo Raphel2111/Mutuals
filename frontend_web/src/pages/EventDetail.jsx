@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../api';
 import EventAccessManager from '../components/EventAccessManager';
+import MyEventQR from './MyEventQR';
 import { fetchCurrentUser } from '../auth';
+import axios from '../api'; // Keep axios for admin functions
 
 export default function EventDetail({ eventId, onBack, onViewGroup }) {
     const [event, setEvent] = useState(null);
@@ -10,16 +11,7 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
     const [loading, setLoading] = useState(true);
     const [newAdminEmail, setNewAdminEmail] = useState('');
     const [showAddAdmin, setShowAddAdmin] = useState(false);
-    const [participants, setParticipants] = useState([]);
-    const [showParticipants, setShowParticipants] = useState(false);
-
-    // Guest Registration State
-    const [isGuestRegistration, setIsGuestRegistration] = useState(false);
-    const [guestData, setGuestData] = useState({
-        first_name: '',
-        last_name: '',
-        type: 'member'
-    });
+    const [isEventAdmin, setIsEventAdmin] = useState(false);
 
     useEffect(() => {
         fetchCurrentUser().then(u => setCurrentUser(u));
@@ -39,80 +31,15 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                 const items = Array.isArray(payload) ? payload : (payload.results || []);
                 setRegistrations(items);
 
-                // Load participants if user is admin
-                const isEventAdmin = eventRes.data.admins?.includes(currentUser.id) || currentUser.role === 'admin';
-                if (isEventAdmin) {
-                    loadParticipants();
-                }
+                // Set isEventAdmin state
+                const adminStatus = currentUser.is_staff || (eventRes.data.admins && eventRes.data.admins.some(admin => admin.id === currentUser.id));
+                setIsEventAdmin(adminStatus);
             })
             .catch(err => console.error('Error loading event details:', err))
             .finally(() => setLoading(false));
     }, [eventId, currentUser]);
 
-    function createRegistration() {
-        if (!currentUser) {
-            alert('No se pudo obtener el usuario actual');
-            return;
-        }
-
-        // Validate guest data if checked
-        if (isGuestRegistration) {
-            if (!guestData.first_name.trim() || !guestData.last_name.trim()) {
-                alert('Por favor ingresa el nombre y apellidos del invitado.');
-                return;
-            }
-        }
-
-        // Check personal limit
-        const myRegistrations = registrations.filter(r => r.user?.id === currentUser.id);
-        if (event.max_qr_codes && myRegistrations.length >= event.max_qr_codes) {
-            alert(`Límite alcanzado: Solo puedes solicitar ${event.max_qr_codes} QR code(s) para este evento. Ya tienes ${myRegistrations.length}.`);
-            return;
-        }
-
-        const payload = {
-            event: eventId,
-            user: currentUser.id
-        };
-
-        if (isGuestRegistration) {
-            payload.attendee_first_name = guestData.first_name;
-            payload.attendee_last_name = guestData.last_name;
-            payload.attendee_type = guestData.type;
-        }
-
-        // Advertencia de precio si el evento es de pago
-        let confirmMsg = '';
-        if (event.price && parseFloat(event.price) > 0) {
-            confirmMsg = `Este evento tiene un costo de $${parseFloat(event.price).toFixed(2)}. Se deducirá de tu billetera.`;
-        }
-
-        if (isGuestRegistration) {
-            confirmMsg += confirmMsg ? '\n\n' : '';
-            confirmMsg += `Estás registrando a: ${guestData.first_name} ${guestData.last_name} (${guestData.type === 'child' ? 'Niño' : guestData.type === 'guest' ? 'Invitado' : 'Fallero'}).`;
-        }
-
-        if (confirmMsg) {
-            if (!window.confirm(`${confirmMsg}\n\n¿Deseas continuar?`)) return;
-        }
-
-        axios.post('registrations/', payload)
-            .then(res => {
-                setRegistrations(prev => [res.data, ...prev]);
-                const message = event.price && parseFloat(event.price) > 0
-                    ? `Registro completado. Pago realizado. Revisa tu correo para el ticket.`
-                    : 'Registro creado exitosamente. Revisa tu correo para el ticket.';
-                alert(message);
-                // Reset form
-                setIsGuestRegistration(false);
-                setGuestData({ first_name: '', last_name: '', type: 'member' });
-            })
-            .catch(err => {
-                console.error('Error creating registration:', err.response?.data || err.message);
-                const errorMsg = err.response?.data?.detail || JSON.stringify(err.response?.data) || err.message;
-                alert('Error al crear registro: ' + errorMsg);
-            });
-    }
+    // createRegistration function removed - managed by MyEventQR
 
     function deleteRegistration(regId) {
         if (!window.confirm('¿Estás seguro de eliminar esta inscripción? Esta acción no se puede deshacer.')) {
@@ -185,33 +112,7 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
             });
     }
 
-    function loadParticipants() {
-        axios.get(`events/${eventId}/participants/`)
-            .then(res => setParticipants(res.data))
-            .catch(err => console.error('Error loading participants:', err));
-    }
-
-    function removeParticipant(userId, userName) {
-        if (!window.confirm(`¿Eliminar a ${userName} del evento? Se eliminarán todas sus inscripciones.`)) return;
-        axios.post(`events/${eventId}/remove_participant/`, { user_id: userId })
-            .then(() => {
-                alert('Participante eliminado del evento');
-                loadParticipants();
-                // Reload registrations
-                axios.get(`registrations/?event=${eventId}&user=${currentUser.id}`)
-                    .then(res => {
-                        const payload = res.data;
-                        const items = Array.isArray(payload) ? payload : (payload.results || []);
-                        setRegistrations(items);
-                    });
-            })
-            .catch(err => alert('Error: ' + (err.response?.data?.detail || err.message)));
-    }
-
-    const isEventAdmin = currentUser && event && (
-        currentUser.is_staff ||
-        (event.admins && event.admins.some(admin => admin.id === currentUser.id))
-    );
+    // loadParticipants and removeParticipant functions removed - managed by EventAccessManager
 
     function exportRegistrations() {
         if (!confirm('¿Descargar lista de participantes en Excel (CSV)?')) return;
@@ -232,12 +133,12 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
             });
     }
 
+    const isValidId = (id) => {
+        return id !== null && id !== undefined;
+    };
+
     if (loading) return <div className="container"><p>Cargando...</p></div>;
     if (!event) return <div className="container"><p>Evento no encontrado</p></div>;
-
-    const qrLimit = event.max_qr_codes || 'Ilimitado';
-    const myQrCount = currentUser ? registrations.filter(r => r.user?.id === currentUser.id).length : 0;
-    const canRequestMore = !event.max_qr_codes || myQrCount < event.max_qr_codes;
 
     return (
         <div className="container">
@@ -248,6 +149,11 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                     <div style={{ flex: 1 }}>
                         <h2 style={{ marginTop: 0 }}>{event.name}</h2>
                         <div className="muted">{event.date ? new Date(event.date).toLocaleString() : 'Fecha desconocida'}</div>
+                        {event.registration_deadline && (
+                            <div style={{ marginTop: 4, color: '#ea580c', fontWeight: 600, fontSize: '0.9em' }}>
+                                ⏳ Cierre inscripción: {new Date(event.registration_deadline).toLocaleString()}
+                            </div>
+                        )}
                     </div>
                     {event.group && onViewGroup && (
                         <button
@@ -270,12 +176,6 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                 </div>
                 <div>
                     <strong>Capacidad:</strong> {event.capacity || 'Ilimitada'}
-                </div>
-                <div>
-                    <strong>Límite de QR por persona:</strong> {qrLimit}
-                </div>
-                <div>
-                    <strong>Precio:</strong> {event.price && parseFloat(event.price) > 0 ? `$${parseFloat(event.price).toFixed(2)}` : 'GRATIS'}
                 </div>
                 <div>
                     <strong>Visibilidad:</strong> {event.is_public ? '🌍 Público' : '🔒 Privado (solo miembros del grupo)'}
@@ -372,96 +272,11 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                 </div>
             )}
 
-            {!event.group && (
-                <div className="card" style={{ marginTop: 20, textAlign: 'center', padding: '30px', backgroundColor: '#f0f9ff', border: '1px solid #3b82f6' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>
-                        {canRequestMore ? '🎫' : '✅'}
-                    </div>
-                    <h3 style={{ margin: '0 0 8px 0' }}>Asistencia al Evento</h3>
-
-                    {event.registration_deadline && new Date() > new Date(event.registration_deadline) ? (
-                        <div style={{ color: '#dc2626', fontWeight: 'bold', padding: '10px' }}>
-                            🚫 Las inscripciones para este evento han cerrado.
-                        </div>
-                    ) : (
-                        <>
-                            {!canRequestMore ? (
-                                <p style={{ margin: 0, color: '#059669', fontSize: '14px', fontWeight: 'bold' }}>
-                                    ✅ Ya estás inscrito en este evento (Límite alcanzado).
-                                </p>
-                            ) : (
-                                <>
-                                    <p style={{ margin: '0 0 16px 0', color: '#1e40af', fontSize: '14px' }}>
-                                        {event.price && parseFloat(event.price) > 0
-                                            ? `El costo de entrada es $${parseFloat(event.price).toFixed(2)}. Se descontará de tu billetera.`
-                                            : 'Este evento es gratuito. ¡Inscríbete para obtener tu QR!'}
-                                    </p>
-
-                                    {/* Guest Registration Form */}
-                                    <div style={{ marginBottom: 16, padding: 12, border: '1px solid #cbd5e1', borderRadius: 8, backgroundColor: 'white' }}>
-                                        <div style={{ marginBottom: 8 }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isGuestRegistration}
-                                                    onChange={(e) => setIsGuestRegistration(e.target.checked)}
-                                                    style={{ marginRight: 8 }}
-                                                />
-                                                Inscribir a otra persona (Invitado / Familiar)
-                                            </label>
-                                        </div>
-
-                                        {isGuestRegistration && (
-                                            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-                                                    <div>
-                                                        <label style={{ fontSize: '12px', display: 'block', marginBottom: 4 }}>Nombre</label>
-                                                        <input
-                                                            type="text"
-                                                            value={guestData.first_name}
-                                                            onChange={(e) => setGuestData({ ...guestData, first_name: e.target.value })}
-                                                            style={{ width: '100%', padding: '6px', borderRadius: 4, border: '1px solid #cbd5e1' }}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label style={{ fontSize: '12px', display: 'block', marginBottom: 4 }}>Apellidos</label>
-                                                        <input
-                                                            type="text"
-                                                            value={guestData.last_name}
-                                                            onChange={(e) => setGuestData({ ...guestData, last_name: e.target.value })}
-                                                            style={{ width: '100%', padding: '6px', borderRadius: 4, border: '1px solid #cbd5e1' }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label style={{ fontSize: '12px', display: 'block', marginBottom: 4 }}>Tipo de asistente</label>
-                                                    <select
-                                                        value={guestData.type}
-                                                        onChange={(e) => setGuestData({ ...guestData, type: e.target.value })}
-                                                        style={{ width: '100%', padding: '6px', borderRadius: 4, border: '1px solid #cbd5e1' }}
-                                                    >
-                                                        <option value="member">Fallero (Miembro)</option>
-                                                        <option value="guest">Invitado</option>
-                                                        <option value="child">Niño / Infantil</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        className="btn"
-                                        onClick={createRegistration}
-                                        style={{ fontSize: '1.1em', padding: '10px 24px' }}
-                                    >
-                                        {event.price && parseFloat(event.price) > 0 ? 'Pagar e Inscribirse' : 'Confirmar Inscripción'}
-                                    </button>
-                                </>
-                            )}
-                        </>
-                    )}
-                </div>
+            {/* Embedded MyEventQR for Registration/RSVP */}
+            {event && isValidId(eventId) && (
+                <MyEventQR eventId={eventId} embedded={true} isMember={true} onBack={() => { }} />
             )}
-        </div>
+
+        </div >
     );
 }

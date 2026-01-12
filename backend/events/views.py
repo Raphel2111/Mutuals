@@ -168,8 +168,10 @@ class EventViewSet(viewsets.ModelViewSet):
         
         # Check permissions
         user = request.user
-        is_admin = user.is_staff or event.admins.filter(pk=user.pk).exists()
-        if not is_admin:
+        is_event_admin = event.admins.filter(pk=user.pk).exists()
+        is_group_admin = event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists())
+        
+        if not (user.is_staff or is_event_admin or is_group_admin):
              return Response({'detail': 'No tienes permisos para exportar.'}, status=status.HTTP_403_FORBIDDEN)
              
         import csv
@@ -883,54 +885,36 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         if event_id:
             event = Event.objects.filter(pk=event_id.pk).first()
             if event:
-                # Check registration deadline
-                if event.registration_deadline and timezone.now() > event.registration_deadline:
+                # Check admin privileges
+                user = request.user
+                is_admin = (
+                    user.is_staff or 
+                    event.admins.filter(pk=user.pk).exists() or 
+                    (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
+                )
+
+                # Check registration deadline (Skip if admin)
+                if not is_admin and event.registration_deadline and timezone.now() > event.registration_deadline:
                     from rest_framework.exceptions import ValidationError
                     raise ValidationError({'detail': 'El plazo de inscripción para este evento ha finalizado.'})
 
-                # Check max_qr_codes limit
+                # Check global capacity (Skip if admin)
+                current_total = Registration.objects.filter(event=event).count()
+                if not is_admin and event.capacity and current_total >= event.capacity:
+                     from rest_framework.exceptions import ValidationError
+                     raise ValidationError({'detail': 'El evento ha alcanzado su capacidad máxima.'})
+
+                # Check max_qr_codes limit (Per User) - Admins might want multiple QRs so skip this too?
+                # User asked "generate qr for people", implies force-adding.
                 if event.max_qr_codes:
-                    current_count = Registration.objects.filter(event=event).count()
-                    if current_count >= event.max_qr_codes:
+                    user_count = Registration.objects.filter(event=event, user=request.user).count()
+                    if not is_admin and user_count >= event.max_qr_codes:
                         from rest_framework.exceptions import ValidationError
-                        raise ValidationError({'detail': f'Límite de registros alcanzado. Este evento solo permite {event.max_qr_codes} registros/QR.'})
+                        raise ValidationError({'detail': f'Límite personal alcanzado. Solo puedes tener {event.max_qr_codes} tickets/QRs para este evento.'})
         
-        # Check if event has a price and process payment
-        user = request.user
-        if event and event.price > 0:
-            # Get or create user's wallet
-            wallet, created = Wallet.objects.get_or_create(user=user)
-            
-            # Check if user has sufficient balance
-            if wallet.balance < event.price:
-                from rest_framework.exceptions import ValidationError
-                raise ValidationError({
-                    'detail': f'Saldo insuficiente. Necesitas {event.price} {wallet.currency} pero solo tienes {wallet.balance} {wallet.currency}.',
-                    'required': float(event.price),
-                    'available': float(wallet.balance)
-                })
-            
-            # Deduct payment from wallet
-            wallet.balance -= event.price
-            wallet.save()
-            
-            # Create registration
-            self.perform_create(serializer)
-            registration = serializer.instance
-            
-            # Create transaction record
-            Transaction.objects.create(
-                wallet=wallet,
-                amount=-event.price,
-                transaction_type='payment',
-                description=f'Pago por entrada a {event.name}',
-                event=event,
-                balance_after=wallet.balance
-            )
-        else:
-            # Free event, just create registration
-            self.perform_create(serializer)
-            registration = serializer.instance
+        # All events are now treated as free (Wallet/Payment removed)
+        self.perform_create(serializer)
+        registration = serializer.instance
 
         # Generate PDF and send by email to the registrant if email is available
         try:

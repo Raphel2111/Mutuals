@@ -21,6 +21,7 @@ export default function GroupDetail({ groupId, onBack }) {
     const [newEventDescription, setNewEventDescription] = useState('');
     const [newEventIsPublic, setNewEventIsPublic] = useState(true);
     const [newEventPrice, setNewEventPrice] = useState('');
+    const [newEventDeadline, setNewEventDeadline] = useState('');
     const [viewingQREventId, setViewingQREventId] = useState(null);
     const [scanningQREventId, setScanningQREventId] = useState(null);
     const [invitations, setInvitations] = useState([]);
@@ -324,7 +325,9 @@ export default function GroupDetail({ groupId, onBack }) {
             description: newEventDescription,
             group: groupId,
             is_public: newEventIsPublic,
-            price: newEventPrice ? parseFloat(newEventPrice) : 0.00
+            is_public: newEventIsPublic,
+            price: 0.00,
+            registration_deadline: newEventDeadline || null
         };
 
         axios.post('events/', payload)
@@ -337,7 +340,7 @@ export default function GroupDetail({ groupId, onBack }) {
                 setNewEventMaxQR('');
                 setNewEventDescription('');
                 setNewEventIsPublic(true);
-                setNewEventPrice('');
+                setNewEventDeadline('');
                 loadGroup();
             })
             .catch(err => {
@@ -397,7 +400,7 @@ export default function GroupDetail({ groupId, onBack }) {
     if (!group) return <div className="container"><p>Grupo no encontrado</p></div>;
 
     if (viewingQREventId) {
-        return <MyEventQR eventId={viewingQREventId} onBack={() => setViewingQREventId(null)} />;
+        return <MyEventQR eventId={viewingQREventId} onBack={() => setViewingQREventId(null)} isMember={isMember} />;
     }
 
     if (scanningQREventId) {
@@ -591,16 +594,10 @@ export default function GroupDetail({ groupId, onBack }) {
                             <input type="number" value={newEventMaxQR} onChange={e => setNewEventMaxQR(e.target.value)} placeholder="Dejar vacío para ilimitado" />
                         </div>
                         <div className="form-row">
-                            <label>Precio (USD)</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={newEventPrice}
-                                onChange={e => setNewEventPrice(e.target.value)}
-                                placeholder="0.00 = Gratis"
-                            />
+                            <label>Fecha Límite Inscripción (Opcional)</label>
+                            <input type="datetime-local" value={newEventDeadline} onChange={e => setNewEventDeadline(e.target.value)} />
                         </div>
+
                         <div className="form-row">
                             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                                 <input

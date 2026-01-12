@@ -63,6 +63,13 @@ class Registration(models.Model):
     alias = models.CharField(max_length=100, blank=True, help_text='Nombre identificativo del QR (ej: Entrada VIP)')
     created_at = models.DateTimeField(auto_now_add=True)
     attended_at = models.DateTimeField(null=True, blank=True)
+    
+    STATUS_CHOICES = [
+        ('confirmed', 'Confirmado'),
+        ('declined', 'Rechazado (No asistirá)'),
+        ('pending', 'Pendiente'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
 
     def get_attendee_name(self):
         if self.attendee_first_name and self.attendee_last_name:
@@ -73,8 +80,8 @@ class Registration(models.Model):
         return self.user.username
 
     def save(self, *args, **kwargs):
-        # Only generate and save a QR code if one isn't already present.
-        if not self.qr_code:
+        # Only generate and save a QR code if one isn't already present AND status is confirmed
+        if not self.qr_code and self.status == 'confirmed':
             filename, file_obj = generate_qr_code(self.entry_code)
             if filename and file_obj:
                 self.qr_code.save(filename, file_obj, save=False)

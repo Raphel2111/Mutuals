@@ -104,9 +104,9 @@ export default function EventList() {
     return (
         <div className="container">
             <div style={{ marginBottom: '28px' }}>
-                <h1 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700' }}>Eventos Disponibles</h1>
+                <h1 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700' }}>Explora la Terreta 🍊</h1>
                 <p style={{ margin: 0, color: 'var(--muted)' }}>
-                    {events.length} {events.length === 1 ? 'evento' : 'eventos'} encontrados
+                    Descubre {events.length} {events.length === 1 ? 'plan' : 'planes'} cerca de ti
                 </p>
             </div>
 
@@ -166,18 +166,7 @@ export default function EventList() {
                         </select>
                     </div>
 
-                    {/* Filtro de precio */}
-                    <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', marginTop: '20px' }}>
-                            <input
-                                type="checkbox"
-                                checked={isFreeFilter}
-                                onChange={(e) => setIsFreeFilter(e.target.checked)}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                            />
-                            Solo eventos gratis
-                        </label>
-                    </div>
+
 
                     {/* Ordenamiento */}
                     <div>
@@ -236,13 +225,8 @@ export default function EventList() {
                                     </p>
                                 )}
                                 {ev.group_name && (
-                                    <p style={{ marginBottom: '12px', fontSize: '14px', color: '#2563eb', fontWeight: 500 }}>
-                                        📂 Grupo: {ev.group_name}
-                                    </p>
-                                )}
-                                {ev.price !== undefined && (
-                                    <p style={{ marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: ev.price > 0 ? '#059669' : '#6b7280' }}>
-                                        💰 {ev.price > 0 ? `$${parseFloat(ev.price).toFixed(2)}` : 'GRATIS'}
+                                    <p style={{ marginBottom: '12px', fontSize: '14px', color: '#7c3aed', fontWeight: 600 }}>
+                                        📂 {ev.group_name}
                                     </p>
                                 )}
                                 {ev.description && (

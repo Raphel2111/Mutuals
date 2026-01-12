@@ -6,7 +6,7 @@ import GroupList from './pages/GroupList';
 import JoinGroup from './pages/JoinGroup';
 import UserProfile from './pages/UserProfile';
 import ProfileSettings from './pages/ProfileSettings';
-import Wallet from './pages/Wallet';
+
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { fetchCurrentUser } from './auth';
@@ -139,7 +139,7 @@ function App() {
                     <div className="nav-header">
                         <div className="brand" onClick={() => setView('events')} style={{ cursor: 'pointer' }}>
                             <BrandLogo />
-                            <span className="brand-text">EventoApp</span>
+                            <h1 style={{ margin: 0, fontSize: '1.5em' }}>La Terreta</h1>
                         </div>
                         <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                             {mobileMenuOpen ? '✕' : '☰'}
@@ -150,9 +150,8 @@ function App() {
                         <button className={`btn nav-item ${view === 'events' ? 'active' : ''}`} onClick={() => { setView('events'); setMobileMenuOpen(false); }}>📅 Eventos</button>
                         {authenticated && (
                             <>
-                                <button className={`btn nav-item ${view === 'registrations' ? 'active' : ''}`} onClick={() => { setView('registrations'); setMobileMenuOpen(false); }}>✓ Inscripciones</button>
-                                <button className={`btn nav-item ${view === 'groups' ? 'active' : ''}`} onClick={() => { setView('groups'); setMobileMenuOpen(false); }}>👥 Grupos</button>
-                                <button className={`btn nav-item ${view === 'wallet' ? 'active' : ''}`} onClick={() => { setView('wallet'); setMobileMenuOpen(false); }}>💰 Billetera</button>
+                                <button className={`btn nav-item ${view === 'registrations' ? 'active' : ''}`} onClick={() => { setView('registrations'); setMobileMenuOpen(false); }}>🎟️ Mis Entradas</button>
+                                <button className={`btn nav-item ${view === 'groups' ? 'active' : ''}`} onClick={() => { setView('groups'); setMobileMenuOpen(false); }}>👥 Mis Grupos</button>
                             </>
                         )}
 
@@ -266,17 +265,7 @@ function App() {
                         </div>
                     </div>
                 ) : null}
-                {view === 'wallet' && authenticated ? (
-                    <ErrorBoundary><Wallet /></ErrorBoundary>
-                ) : view === 'wallet' ? (
-                    <div className="container">
-                        <div className="card" style={{ textAlign: 'center' }}>
-                            <h2>Acceso restringido</h2>
-                            <p>Debes iniciar sesión para ver tu billetera</p>
-                            <button className="btn" onClick={() => setView('events')}>Volver a Eventos</button>
-                        </div>
-                    </div>
-                ) : null}
+
             </div>
         </div>
     );

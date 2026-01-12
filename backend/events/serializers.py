@@ -30,9 +30,22 @@ class EventSerializer(serializers.ModelSerializer):
     group = serializers.PrimaryKeyRelatedField(queryset=DistributionGroup.objects.all(), allow_null=True, required=False)
     group_name = serializers.CharField(source='group.name', read_only=True, allow_null=True)
 
+    is_admin = serializers.SerializerMethodField()
+
     class Meta:
         model = Event
-        fields = ['id','name','description','date','location','capacity','max_qr_codes','admins','group','group_name','requires_approval','is_public','price']
+        fields = ['id','name','description','date','location','capacity','max_qr_codes','admins','group','group_name','requires_approval','is_public','price','registration_deadline','is_admin']
+
+    def get_is_admin(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        user = request.user
+        return (
+            user.is_staff or 
+            obj.admins.filter(pk=user.pk).exists() or 
+            (obj.group and (obj.group.admins.filter(pk=user.pk).exists() or obj.group.creators.filter(pk=user.pk).exists()))
+        )
 
 class RegistrationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -40,14 +53,21 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Registration
-        fields = ['id','user','event','entry_code','qr_code','qr_url','used', 'attendee_first_name', 'attendee_last_name', 'attendee_type']
-        read_only_fields = ['entry_code','qr_code','qr_url']
+        fields = ['id','user','event','entry_code','qr_code','qr_url','used', 'attendee_first_name', 'attendee_last_name', 'attendee_type', 'alias', 'created_at', 'attended_at', 'status']
+        read_only_fields = ['entry_code','qr_code','qr_url', 'created_at', 'attended_at']
 
     def get_qr_url(self, obj):
         request = self.context.get('request')
         if obj.qr_code and hasattr(obj.qr_code, 'url'):
             return request.build_absolute_uri(obj.qr_code.url) if request else obj.qr_code.url
         return None
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Nest event details for read operations
+        if instance.event:
+            ret['event'] = EventSerializer(instance.event).data
+        return ret
 
     def create(self, validated_data):
         # associate the registration with the request user if available

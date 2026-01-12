@@ -135,6 +135,17 @@ class EventViewSet(viewsets.ModelViewSet):
     def participants(self, request, pk=None):
         """Get all participants (users with registrations) for this event"""
         event = self.get_object()
+        
+        # ACCESS CONTROL: Only admins/staff can see participant list
+        user = request.user
+        is_admin = (
+            user.is_staff or 
+            event.admins.filter(pk=user.pk).exists() or 
+            (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
+        )
+        if not is_admin:
+            return Response({'detail': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+
         registrations = Registration.objects.filter(event=event).select_related('user')
         from users.serializers import UserSerializer
         # Get unique users
@@ -870,10 +881,22 @@ class RegistrationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff:
-            return Registration.objects.all()
-        # Users see their own registrations or registrations for events they administer
-        return Registration.objects.filter(dj_models.Q(user=user) | dj_models.Q(event__admins=user)).distinct()
+        queryset = Registration.objects.all()
+
+        if not user.is_staff:
+            # Base visibility: own registrations OR registrations for events I admin
+            queryset = queryset.filter(dj_models.Q(user=user) | dj_models.Q(event__admins=user)).distinct()
+
+        # Apply specific filters if provided
+        event_id = self.request.query_params.get('event')
+        if event_id:
+            queryset = queryset.filter(event_id=event_id)
+        
+        user_param = self.request.query_params.get('user')
+        if user_param:
+            queryset = queryset.filter(user_id=user_param)
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})

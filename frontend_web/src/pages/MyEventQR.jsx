@@ -28,6 +28,7 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
 
     function loadData() {
         setLoading(true);
+        // FORCE Filtering by event to prevent duplicates from other events where I am admin
         Promise.all([
             axios.get(`events/${eventId}/`),
             axios.get(`registrations/?event=${eventId}&user=${currentUser.id}`)

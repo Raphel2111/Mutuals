@@ -83,18 +83,18 @@ export default function QRScanner({ eventId, onBack }) {
                 }
 
                 // Validate the QR
-                return axios.post(`registrations/${registration.id}/validate_qr/`).then(r => ({ ...r, registration })); // pass registration details
+                const validationPromise = axios.post(`registrations/${registration.id}/validate_qr/`).then(r => ({ ...r, registration }));
+
+                // Add artificial delay for UX (prevent double tap / race conditions visually)
+                const delayPromise = new Promise(resolve => setTimeout(resolve, 1500));
+
+                return Promise.all([validationPromise, delayPromise]).then(([res]) => res);
             })
             .then(res => {
                 if (res) {
                     // Start from fresh result
                     const resultData = res.data;
                     // Check if we need to attach registration info manually if backend didn't return it full
-                    // The backend returns { validation: true, already_used: boolean, registration: {...} } ideally
-                    // Current backend might just return validation result. 
-                    // Let's assume backend returns "already_used" and maybe "registration" object or we merge it.
-                    // My previous code expected result.registration.
-                    // If res.data doesn't have registration, I'll attach it.
                     if (!resultData.registration && res.registration) {
                         resultData.registration = res.registration;
                     }

@@ -1123,6 +1123,8 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         user = request.user
         event = registration.event
         
+        from django.db import transaction
+
         # Check if event belongs to a group and user is admin of that group
         if event.group:
             is_group_admin = event.group.admins.filter(pk=user.pk).exists()
@@ -1135,21 +1137,26 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             if not is_admin:
                 return Response({'detail': 'No tienes permisos para validar este QR.'}, status=status.HTTP_403_FORBIDDEN)
         
-        if registration.used:
+        with transaction.atomic():
+            # Lock the row to prevent race conditions
+            locked_reg = Registration.objects.select_for_update().get(pk=registration.pk)
+            
+            if locked_reg.used:
+                return Response({
+                    'detail': 'Este QR ya fue usado anteriormente.',
+                    'already_used': True,
+                    'registration': RegistrationSerializer(locked_reg).data
+                }, status=status.HTTP_200_OK)
+            
+            locked_reg.used = True
+            locked_reg.attended_at = timezone.now()
+            locked_reg.save()
+            
             return Response({
-                'detail': 'Este QR ya fue usado anteriormente.',
-                'already_used': True,
-                'registration': RegistrationSerializer(registration).data
+                'detail': 'QR validado exitosamente.',
+                'already_used': False,
+                'registration': RegistrationSerializer(locked_reg).data
             }, status=status.HTTP_200_OK)
-        
-        registration.used = True
-        registration.save()
-        
-        return Response({
-            'detail': 'QR validado exitosamente.',
-            'already_used': False,
-            'registration': RegistrationSerializer(registration).data
-        }, status=status.HTTP_200_OK)
 
 
 class GroupAccessTokenViewSet(viewsets.ModelViewSet):

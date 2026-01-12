@@ -31,9 +31,8 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                 const items = Array.isArray(payload) ? payload : (payload.results || []);
                 setRegistrations(items);
 
-                // Set isEventAdmin state
-                const adminStatus = currentUser.is_staff || (eventRes.data.admins && eventRes.data.admins.some(admin => admin.id === currentUser.id));
-                setIsEventAdmin(adminStatus);
+                // Use the backend-provided 'is_admin' flag which correctly includes Group Admins/Creators
+                setIsEventAdmin(eventRes.data.is_admin);
             })
             .catch(err => console.error('Error loading event details:', err))
             .finally(() => setLoading(false));

@@ -42,9 +42,22 @@ class IsEventAdminOrReadOnly(permissions.BasePermission):
 
         # Check if user is in event.admins
         try:
-            return event.admins.filter(pk=request.user.pk).exists()
+            if event.admins.filter(pk=request.user.pk).exists():
+                return True
         except Exception:
-            return False
+            pass
+            
+        # Check if user is in group admins/creators (if event belongs to group)
+        try:
+            if event.group:
+                if event.group.admins.filter(pk=request.user.pk).exists():
+                    return True
+                if event.group.creators.filter(pk=request.user.pk).exists():
+                    return True
+        except Exception:
+            pass
+            
+        return False
 
 
 class IsGroupOrEventAdmin(permissions.BasePermission):

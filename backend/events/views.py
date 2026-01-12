@@ -202,7 +202,8 @@ class EventViewSet(viewsets.ModelViewSet):
         response['Content-Disposition'] = f'attachment; filename="participantes_{event.id}.csv"'
         response.write(u'\ufeff'.encode('utf8')) # BOM for Excel to open UTF-8 correctly
         
-        writer = csv.writer(response)
+        # Use semicolon for Excel in Spanish/European locales
+        writer = csv.writer(response, delimiter=';')
         writer.writerow(['ID', 'Usuario (Cuenta)', 'Email', 'Teléfono', 'Asistente (Nombre)', 'Tipo', 'Usado', 'Código'])
         
         registrations = Registration.objects.filter(event=event).select_related('user')

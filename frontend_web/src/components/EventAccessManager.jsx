@@ -81,6 +81,27 @@ export default function EventAccessManager({ event, currentUser }) {
             .finally(() => setCreating(false));
     };
 
+    const handleExcelExport = () => {
+        if (!confirm('¿Descargar listado de participantes en Excel?')) return;
+
+        setLoading(true);
+        axios.get(`events/${event.id}/export_registrations/`, { responseType: 'blob' })
+            .then((response) => {
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `participantes_${event.id}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            })
+            .catch((error) => {
+                console.error('Export error:', error);
+                alert('Error al exportar: ' + (error.response?.data?.detail || 'No tienes permisos o ha ocurrido un error.'));
+            })
+            .finally(() => setLoading(false));
+    };
+
     // Filter Lists
     const attendedList = registrations.filter(r => r.attended_at);
 
@@ -118,12 +139,11 @@ export default function EventAccessManager({ event, currentUser }) {
                 </button>
                 <button
                     className="btn secondary"
-                    onClick={() => {
-                        window.open(getBackendUrl(`events/${event.id}/export_registrations/`), '_blank');
-                    }}
-                    style={{ marginLeft: 'auto', fontSize: '12px', borderColor: '#86efac', color: '#166534', backgroundColor: '#dcfce7' }}
+                    onClick={handleExcelExport}
+                    disabled={loading}
+                    style={{ marginLeft: 'auto', fontSize: '12px', borderColor: '#86efac', color: '#166534', backgroundColor: loading ? '#f0fdf4' : '#dcfce7' }}
                 >
-                    📊 Exportar Excel
+                    {loading ? '⏳...' : '📊 Exportar Excel'}
                 </button>
             </div>
 

@@ -956,6 +956,14 @@ class RegistrationViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def perform_create(self, serializer):
+        # Explicitly pass status if present to ensure it's saved correctly
+        status_val = self.request.data.get('status')
+        if status_val in ['confirmed', 'declined', 'pending']:
+            serializer.save(status=status_val)
+        else:
+            serializer.save()
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)

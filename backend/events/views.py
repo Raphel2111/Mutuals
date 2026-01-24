@@ -963,99 +963,96 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        
-        # Check max_qr_codes limit before creating
-        status_val = request.data.get('status')
-        if status_val == 'declined':
-            # Skip all checks for declined status
-            pass
-        else:
-            event_id = serializer.validated_data.get('event')
-            event = None
-            if event_id:
-                event = Event.objects.filter(pk=event_id.pk).first()
-                if event:
-                    # Check admin privileges
-                    user = request.user
-                    is_admin = (
-                        user.is_staff or 
-                        event.admins.filter(pk=user.pk).exists() or 
-                        (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
-                    )
-
-                    # Check registration deadline (Skip if admin)
-                    if not is_admin and event.registration_deadline and timezone.now() > event.registration_deadline:
-                        from rest_framework.exceptions import ValidationError
-                        raise ValidationError({'detail': 'El plazo de inscripción para este evento ha finalizado.'})
-
-                    # Check global capacity (Skip if admin)
-                    current_total = Registration.objects.filter(event=event).exclude(status='declined').count()
-                    if not is_admin and event.capacity and current_total >= event.capacity:
-                         from rest_framework.exceptions import ValidationError
-                         raise ValidationError({'detail': 'El evento ha alcanzado su capacidad máxima.'})
-
-                    # Check max_qr_codes limit (Per User)
-                    if event.max_qr_codes:
-                        user_count = Registration.objects.filter(event=event, user=request.user).exclude(status='declined').count()
-                        if not is_admin and user_count >= event.max_qr_codes:
-                            from rest_framework.exceptions import ValidationError
-                            raise ValidationError({'detail': f'Límite personal alcanzado. Solo puedes tener {event.max_qr_codes} tickets/QRs para este evento.'})
-        
-        # All events are now treated as free (Wallet/Payment removed)
-        self.perform_create(serializer)
-        registration = serializer.instance
-
-        # Generate PDF and send by email to the registrant if email is available
         try:
-            pdf_bytes = generate_ticket_pdf_bytes(registration)
-            recipient = getattr(registration.user, 'email', None)
-
-            if recipient:
-                subject = f'Ticket for {registration.event.name}'
-                body = f'Adjunto su entrada para {registration.event.name}. Código: {registration.entry_code}'
-                email = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient])
-                email.attach(f'ticket_{registration.entry_code}.pdf', pdf_bytes, 'application/pdf')
-                try:
-                    send_result = email.send(fail_silently=False)
-                    # record success in EmailLog
-                    EmailLog.objects.create(
-                        registration=registration,
-                        recipient=recipient,
-                        subject=subject,
-                        body=body,
-                        success=True,
-                    )
-                except Exception as e:
-                    # log the exception and record failure
-                    logger.error('Failed sending ticket email to %s: %s', recipient, str(e))
-                    EmailLog.objects.create(
-                        registration=registration,
-                        recipient=recipient,
-                        subject=subject,
-                        body=body,
-                        success=False,
-                        error_text=str(e),
-                    )
-        except Exception as e:
-            # PDF generation or other failure — log it and record an EmailLog entry if possible
-            logger.error('Failed to generate/send ticket for registration %s: %s', registration.pk, str(e))
-            recipient = getattr(registration.user, 'email', None)
-            try:
-                EmailLog.objects.create(
-                    registration=registration,
-                    recipient=recipient or '',
-                    subject=f'Ticket for {registration.event.name}',
-                    body='',
-                    success=False,
-                    error_text=str(e),
-                )
-            except Exception:
+            print(f"DEBUG CREATE REGISTRATION: Data={request.data} User={request.user}")
+            serializer = self.get_serializer(data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            
+            # Check max_qr_codes limit before creating
+            status_val = request.data.get('status')
+            if status_val == 'declined':
+                # Skip all checks for declined status
                 pass
+            else:
+                event_id = serializer.validated_data.get('event')
+                event = None
+                if event_id:
+                    event = Event.objects.filter(pk=event_id.pk).first()
+                    if event:
+                        # Check admin privileges
+                        user = request.user
+                        is_admin = (
+                            user.is_staff or 
+                            event.admins.filter(pk=user.pk).exists() or 
+                            (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
+                        )
 
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+                        # Check registration deadline (Skip if admin)
+                        if not is_admin and event.registration_deadline and timezone.now() > event.registration_deadline:
+                            from rest_framework.exceptions import ValidationError
+                            raise ValidationError({'detail': 'El plazo de inscripción para este evento ha finalizado.'})
+
+                        # Check global capacity (Skip if admin)
+                        current_total = Registration.objects.filter(event=event).exclude(status='declined').count()
+                        if not is_admin and event.capacity and current_total >= event.capacity:
+                             from rest_framework.exceptions import ValidationError
+                             raise ValidationError({'detail': 'El evento ha alcanzado su capacidad máxima.'})
+
+                        # Check max_qr_codes limit (Per User)
+                        if event.max_qr_codes:
+                            user_count = Registration.objects.filter(event=event, user=request.user).exclude(status='declined').count()
+                            if not is_admin and user_count >= event.max_qr_codes:
+                                from rest_framework.exceptions import ValidationError
+                                raise ValidationError({'detail': f'Límite personal alcanzado. Solo puedes tener {event.max_qr_codes} tickets/QRs para este evento.'})
+            
+            # All events are now treated as free (Wallet/Payment removed)
+            self.perform_create(serializer)
+            registration = serializer.instance
+            
+            # Only send email if confirmed (and thus has entry_code)
+            if registration.status == 'confirmed' and registration.entry_code:
+                try:
+                    pdf_bytes = generate_ticket_pdf_bytes(registration)
+                    recipient = getattr(registration.user, 'email', None)
+
+                    if recipient:
+                        subject = f'Ticket for {registration.event.name}'
+                        body = f'Adjunto su entrada para {registration.event.name}. Código: {registration.entry_code}'
+                        email = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient])
+                        email.attach(f'ticket_{registration.entry_code}.pdf', pdf_bytes, 'application/pdf')
+                        
+                        send_result = email.send(fail_silently=False)
+                        # record success in EmailLog
+                        EmailLog.objects.create(
+                            registration=registration,
+                            recipient=recipient,
+                            subject=subject,
+                            body=body,
+                            success=True,
+                        )
+                except Exception as e:
+                    # log the exception (but don't fail the request)
+                    logger.error('Failed sending ticket email: %s', str(e))
+                    try:
+                        recipient = getattr(registration.user, 'email', 'unknown')
+                        EmailLog.objects.create(
+                            registration=registration,
+                            recipient=recipient,
+                            subject=f'Ticket for {registration.event.name}',
+                            body='',
+                            success=False,
+                            error_text=str(e),
+                        )
+                    except:
+                        pass
+
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'detail': f'Error interno CRITICO en create: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'], url_path='download_ticket')
     def download_ticket(self, request, pk=None):
@@ -1066,6 +1063,15 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         user = request.user
         event = registration.event
         is_admin = user.is_staff or event.admins.filter(pk=user.pk).exists()
+        if not (registration.user == user or is_admin):
+            return Response({'detail': 'No tienes permisos para descargar este ticket.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            pdf_bytes = generate_ticket_pdf_bytes(registration)
+        except Exception as e:
+            logger.error(f"Error generating PDF for registration {registration.pk}: {e}")
+            return Response({'detail': 'Error generando el ticket PDF.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         filename = f'ticket_{registration.entry_code}.pdf'
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="{filename}"'

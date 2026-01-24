@@ -81,18 +81,16 @@ class Registration(models.Model):
         return self.user.username
 
     def save(self, *args, **kwargs):
-        # Only generate entry_code and QR for confirmed registrations
-        if self.status == 'confirmed':
-            if not self.entry_code:
-                self.entry_code = uuid.uuid4()
-            if not self.qr_code:
-                filename, file_obj = generate_qr_code(self.entry_code)
-                if filename and file_obj:
-                    self.qr_code.save(filename, file_obj, save=False)
-        elif self.status == 'declined':
-            # Declined: clear entry code but don't touch qr_code field incorrectly
-            self.entry_code = None
-        # For 'pending' status, leave as-is
+        # Always ensure entry_code exists to satisfy NOT NULL DB constraint
+        if not self.entry_code:
+            self.entry_code = uuid.uuid4()
+
+        # Only generate QR code image if status is confirmed
+        if self.status == 'confirmed' and not self.qr_code:
+            filename, file_obj = generate_qr_code(self.entry_code)
+            if filename and file_obj:
+                self.qr_code.save(filename, file_obj, save=False)
+        
         super().save(*args, **kwargs)
 
 

@@ -992,6 +992,13 @@ class RegistrationViewSet(viewsets.ModelViewSet):
                     if not is_admin and user_count >= event.max_qr_codes:
                         from rest_framework.exceptions import ValidationError
                         raise ValidationError({'detail': f'Límite personal alcanzado. Solo puedes tener {event.max_qr_codes} tickets/QRs para este evento.'})
+
+                # Check Private Event Access (Skip if admin)
+                if not is_admin and not event.is_public and event.group:
+                    is_member = event.group.members.filter(pk=user.pk).exists()
+                    if not is_member:
+                        from rest_framework.exceptions import ValidationError
+                        raise ValidationError({'detail': 'Este evento es privado. Debes ser miembro del grupo para inscribirte.'})
         
         # All events are now treated as free (Wallet/Payment removed)
         self.perform_create(serializer)

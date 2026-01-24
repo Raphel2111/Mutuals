@@ -272,8 +272,8 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
             )}
 
             {/* Embedded MyEventQR for Registration/RSVP */}
-            {event && isValidId(eventId) && (
-                <MyEventQR eventId={eventId} embedded={true} isMember={true} onBack={() => { }} />
+            {event && isValidId(eventId) && (event.is_public || event.is_group_member || isEventAdmin) && (
+                <MyEventQR eventId={eventId} embedded={true} isMember={event.is_group_member} onBack={() => { }} />
             )}
 
         </div >

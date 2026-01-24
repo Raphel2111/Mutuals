@@ -31,10 +31,11 @@ class EventSerializer(serializers.ModelSerializer):
     group_name = serializers.CharField(source='group.name', read_only=True, allow_null=True)
 
     is_admin = serializers.SerializerMethodField()
+    is_group_member = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
-        fields = ['id','name','description','date','location','capacity','max_qr_codes','admins','group','group_name','requires_approval','is_public','price','registration_deadline','is_admin']
+        fields = ['id','name','description','date','location','capacity','max_qr_codes','admins','group','group_name','requires_approval','is_public','price','registration_deadline','is_admin', 'is_group_member']
 
     def get_is_admin(self, obj):
         request = self.context.get('request')
@@ -46,6 +47,14 @@ class EventSerializer(serializers.ModelSerializer):
             obj.admins.filter(pk=user.pk).exists() or 
             (obj.group and (obj.group.admins.filter(pk=user.pk).exists() or obj.group.creators.filter(pk=user.pk).exists()))
         )
+
+    def get_is_group_member(self, obj):
+        if not obj.group:
+            return False
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.group.members.filter(pk=request.user.pk).exists()
 
 class RegistrationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

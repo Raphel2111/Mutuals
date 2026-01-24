@@ -303,6 +303,19 @@ class EventViewSet(viewsets.ModelViewSet):
             defaults={'status': 'declined', 'attendee_type': 'member'}
         )
         
+        # CRITICAL FIX: If user was previously confirmed, they might have a QR code.
+        # We must explicitly delete it.
+        if reg.qr_code:
+            try:
+                # Delete the physical file
+                reg.qr_code.delete(save=False)
+                # Clear the field
+                reg.qr_code = None
+                reg.save()
+            except Exception as e:
+                # Log error but don't fail the request
+                print(f"Error deleting QR code for declined user: {e}")
+        
         return Response({'detail': 'Attendance declined', 'status': 'declined', 'id': reg.id}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='request_access', permission_classes=[permissions.IsAuthenticated])

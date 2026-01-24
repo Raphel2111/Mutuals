@@ -67,10 +67,9 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             axios.post(`events/${eventId}/decline_attendance/`)
                 .then(res => {
                     alert('Has registrado que NO asistirás.');
-                    // CRITICAL FIX: Reload all data to ensure backend state (Clean Sweep) is perfectly reflected.
-                    // This handles removal of duplicates, named tickets, etc. safely.
-                    loadData();
-                    setShowGuestForm(false);
+                    // CRITICAL FIX: User requested page reload to ensure no ghost state.
+                    // This creates a fresh start.
+                    window.location.reload();
                 })
                 .catch(err => {
                     console.error(err);

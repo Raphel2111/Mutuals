@@ -959,6 +959,22 @@ class RegistrationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Explicitly pass status if present to ensure it's saved correctly
         status_val = self.request.data.get('status')
+        
+        # BRUTE FORCE FIX: If declining, create object directly to bypass any serializer issues
+        if status_val == 'declined':
+            user = self.request.user
+            # Get valid data from serializer (event, etc.)
+            data = {k: v for k, v in serializer.validated_data.items() if k != 'user'}
+            data['status'] = 'declined'
+            
+            from .models import Registration
+            # Create directly in DB
+            instance = Registration.objects.create(user=user, **data)
+            
+            # IMPORTANT: Set instance on serializer so the view can confirm it
+            serializer.instance = instance
+            return
+
         if status_val in ['confirmed', 'declined', 'pending']:
             serializer.save(status=status_val)
         else:

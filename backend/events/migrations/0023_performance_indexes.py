@@ -5,7 +5,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('events', '0024_wallet_transaction'),  # Adjust to your latest migration
+        ('events', '0022_conditional_entry_code'),
     ]
 
     operations = [

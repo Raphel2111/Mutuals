@@ -967,37 +967,41 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         # Check max_qr_codes limit before creating
-        event_id = serializer.validated_data.get('event')
-        event = None
-        if event_id:
-            event = Event.objects.filter(pk=event_id.pk).first()
-            if event:
-                # Check admin privileges
-                user = request.user
-                is_admin = (
-                    user.is_staff or 
-                    event.admins.filter(pk=user.pk).exists() or 
-                    (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
-                )
+        status_val = request.data.get('status')
+        if status_val == 'declined':
+            # Skip all checks for declined status
+            pass
+        else:
+            event_id = serializer.validated_data.get('event')
+            event = None
+            if event_id:
+                event = Event.objects.filter(pk=event_id.pk).first()
+                if event:
+                    # Check admin privileges
+                    user = request.user
+                    is_admin = (
+                        user.is_staff or 
+                        event.admins.filter(pk=user.pk).exists() or 
+                        (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
+                    )
 
-                # Check registration deadline (Skip if admin)
-                if not is_admin and event.registration_deadline and timezone.now() > event.registration_deadline:
-                    from rest_framework.exceptions import ValidationError
-                    raise ValidationError({'detail': 'El plazo de inscripción para este evento ha finalizado.'})
-
-                # Check global capacity (Skip if admin)
-                current_total = Registration.objects.filter(event=event).count()
-                if not is_admin and event.capacity and current_total >= event.capacity:
-                     from rest_framework.exceptions import ValidationError
-                     raise ValidationError({'detail': 'El evento ha alcanzado su capacidad máxima.'})
-
-                # Check max_qr_codes limit (Per User) - Admins might want multiple QRs so skip this too?
-                # User asked "generate qr for people", implies force-adding.
-                if event.max_qr_codes:
-                    user_count = Registration.objects.filter(event=event, user=request.user).count()
-                    if not is_admin and user_count >= event.max_qr_codes:
+                    # Check registration deadline (Skip if admin)
+                    if not is_admin and event.registration_deadline and timezone.now() > event.registration_deadline:
                         from rest_framework.exceptions import ValidationError
-                        raise ValidationError({'detail': f'Límite personal alcanzado. Solo puedes tener {event.max_qr_codes} tickets/QRs para este evento.'})
+                        raise ValidationError({'detail': 'El plazo de inscripción para este evento ha finalizado.'})
+
+                    # Check global capacity (Skip if admin)
+                    current_total = Registration.objects.filter(event=event).exclude(status='declined').count()
+                    if not is_admin and event.capacity and current_total >= event.capacity:
+                         from rest_framework.exceptions import ValidationError
+                         raise ValidationError({'detail': 'El evento ha alcanzado su capacidad máxima.'})
+
+                    # Check max_qr_codes limit (Per User)
+                    if event.max_qr_codes:
+                        user_count = Registration.objects.filter(event=event, user=request.user).exclude(status='declined').count()
+                        if not is_admin and user_count >= event.max_qr_codes:
+                            from rest_framework.exceptions import ValidationError
+                            raise ValidationError({'detail': f'Límite personal alcanzado. Solo puedes tener {event.max_qr_codes} tickets/QRs para este evento.'})
         
         # All events are now treated as free (Wallet/Payment removed)
         self.perform_create(serializer)

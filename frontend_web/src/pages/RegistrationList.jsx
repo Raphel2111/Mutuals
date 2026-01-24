@@ -18,13 +18,17 @@ export default function RegistrationList() {
             .then(res => {
                 const payload = res.data;
                 const items = Array.isArray(payload) ? payload : (payload.results || []);
+
+                // Filter out declined registrations (user said "No asistiré")
+                const activeItems = items.filter(r => r.status !== 'declined');
+
                 // Sort by event date descending
-                items.sort((a, b) => {
+                activeItems.sort((a, b) => {
                     const dateA = a.event?.date ? new Date(a.event.date) : new Date(0);
                     const dateB = b.event?.date ? new Date(b.event.date) : new Date(0);
                     return dateB - dateA;
                 });
-                setRegs(items);
+                setRegs(activeItems);
             })
             .catch(err => console.error('Failed loading registrations', err))
             .finally(() => setLoading(false));

@@ -290,49 +290,7 @@ class EventViewSet(viewsets.ModelViewSet):
             'id': reg.id
         }, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'], url_path='decline_attendance', permission_classes=[permissions.IsAuthenticated])
-    def decline_attendance(self, request, pk=None):
-        """Dedicated endpoint for declining attendance.
-        Strategy: CLEAN SWEEP.
-        Because duplicate registrations might exist (no unique constraint), 
-        we find ALL personal registrations for this event/user and delete them.
-        Then we create a single, fresh 'declined' record.
-        """
-        """
-        try:
-            event = self.get_object()
-            user = request.user
-            from .models import Registration
-            from django.db.models import Q
 
-            # 1. Find existing personal registrations
-            existing_regs = Registration.objects.filter(event=event, user=user).filter(
-                Q(attendee_first_name__isnull=True) | 
-                Q(attendee_first_name='') |
-                Q(attendee_type='member')
-            )
-            
-            # 2. Delete them aggressively
-            for reg in existing_regs:
-                if reg.qr_code:
-                    try:
-                        reg.qr_code.delete(save=False)
-                    except:
-                        pass
-                reg.delete()
-                
-            # 3. Create FRESH declined record
-            new_reg = Registration.objects.create(
-                event=event,
-                user=user,
-                status='declined',
-                attendee_type='member'
-            )
-            
-            return Response({'detail': 'Attendance declined', 'status': 'declined', 'id': new_reg.id}, status=status.HTTP_200_OK)
-        except Exception as e:
-            import traceback
-            return Response({'detail': f'Error 500: {str(e)}', 'trace': traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], url_path='request_access', permission_classes=[permissions.IsAuthenticated])
     def request_access(self, request, pk=None):
@@ -1051,30 +1009,6 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         except:
              pass
 
-        # ROADBLOCK: Force usage of new endpoint
-        status_val = request.data.get('rsvp_status') or request.data.get('status')
-        if status_val == 'declined':
-             return Response({'detail': 'Use /decline_attendance/'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Old logic disabled:
-        if False and status_val == 'declined':
-            # Manual creation
-            from .models import Registration
-            serializer = self.get_serializer(data=request.data, context={'request': request})
-            serializer.is_valid(raise_exception=True)
-            
-            data = {k: v for k, v in serializer.validated_data.items() if k != 'user'}
-            data['status'] = 'declined'
-            
-            reg = Registration.objects.create(user=request.user, **data)
-            
-            # CRITICAL FIX: Set instance so serializer.data works (custom to_representation expects object)
-            serializer.instance = reg
-
-            # Return response immediately
-            headers = self.get_success_headers(serializer.data)
-            # Re-serialize the created object to match expected output structure
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)

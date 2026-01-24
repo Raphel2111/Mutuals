@@ -179,7 +179,7 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
                                     style={{ borderColor: '#ef4444', color: '#dc2626', fontSize: '1.2em', padding: '12px 24px' }}
                                     onClick={() => handleCreateRegistration(false, 'declined')}
                                 >
-                                    👎 No Asistiré (Final)
+                                    👎 No Asistiré (V3)
                                 </button>
                             </div>
                         </div>

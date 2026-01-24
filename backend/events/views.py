@@ -10,6 +10,7 @@ from django.utils import timezone
 from io import BytesIO
 from django.db import models as dj_models
 import logging
+import datetime
 
 from .models import Event, Registration, EmailLog, DistributionGroup, GroupAccessToken, GroupInvitation, AccessRequest, GroupAccessRequest
 from .serializers import EventSerializer, RegistrationSerializer, AccessRequestSerializer, GroupAccessRequestSerializer
@@ -1062,9 +1063,13 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         except:
              pass
 
-        # BRUTE FORCE CHECK IN CREATE
+        # ROADBLOCK: Force usage of new endpoint
         status_val = request.data.get('rsvp_status') or request.data.get('status')
         if status_val == 'declined':
+             return Response({'detail': 'Use /decline_attendance/'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Old logic disabled:
+        if False and status_val == 'declined':
             # Manual creation
             from .models import Registration
             serializer = self.get_serializer(data=request.data, context={'request': request})

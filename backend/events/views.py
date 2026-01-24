@@ -997,52 +997,53 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
         registration = serializer.instance
 
-        # Generate PDF and send by email to the registrant if email is available
-        try:
-            pdf_bytes = generate_ticket_pdf_bytes(registration)
-            recipient = getattr(registration.user, 'email', None)
+        # Generate PDF and send by email to the registrant if email is available AND status is confirmed
+        if registration.status == 'confirmed':
+            try:
+                pdf_bytes = generate_ticket_pdf_bytes(registration)
+                recipient = getattr(registration.user, 'email', None)
 
-            if recipient:
-                subject = f'Ticket for {registration.event.name}'
-                body = f'Adjunto su entrada para {registration.event.name}. Código: {registration.entry_code}'
-                email = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient])
-                email.attach(f'ticket_{registration.entry_code}.pdf', pdf_bytes, 'application/pdf')
+                if recipient:
+                    subject = f'Ticket for {registration.event.name}'
+                    body = f'Adjunto su entrada para {registration.event.name}. Código: {registration.entry_code}'
+                    email = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient])
+                    email.attach(f'ticket_{registration.entry_code}.pdf', pdf_bytes, 'application/pdf')
+                    try:
+                        send_result = email.send(fail_silently=False)
+                        # record success in EmailLog
+                        EmailLog.objects.create(
+                            registration=registration,
+                            recipient=recipient,
+                            subject=subject,
+                            body=body,
+                            success=True,
+                        )
+                    except Exception as e:
+                        # log the exception and record failure
+                        logger.error('Failed sending ticket email to %s: %s', recipient, str(e))
+                        EmailLog.objects.create(
+                            registration=registration,
+                            recipient=recipient,
+                            subject=subject,
+                            body=body,
+                            success=False,
+                            error_text=str(e),
+                        )
+            except Exception as e:
+                # PDF generation or other failure — log it and record an EmailLog entry if possible
+                logger.error('Failed to generate/send ticket for registration %s: %s', registration.pk, str(e))
+                recipient = getattr(registration.user, 'email', None)
                 try:
-                    send_result = email.send(fail_silently=False)
-                    # record success in EmailLog
                     EmailLog.objects.create(
                         registration=registration,
-                        recipient=recipient,
-                        subject=subject,
-                        body=body,
-                        success=True,
-                    )
-                except Exception as e:
-                    # log the exception and record failure
-                    logger.error('Failed sending ticket email to %s: %s', recipient, str(e))
-                    EmailLog.objects.create(
-                        registration=registration,
-                        recipient=recipient,
-                        subject=subject,
-                        body=body,
+                        recipient=recipient or '',
+                        subject=f'Ticket for {registration.event.name}',
+                        body='',
                         success=False,
                         error_text=str(e),
                     )
-        except Exception as e:
-            # PDF generation or other failure — log it and record an EmailLog entry if possible
-            logger.error('Failed to generate/send ticket for registration %s: %s', registration.pk, str(e))
-            recipient = getattr(registration.user, 'email', None)
-            try:
-                EmailLog.objects.create(
-                    registration=registration,
-                    recipient=recipient or '',
-                    subject=f'Ticket for {registration.event.name}',
-                    body='',
-                    success=False,
-                    error_text=str(e),
-                )
-            except Exception:
-                pass
+                except Exception:
+                    pass
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

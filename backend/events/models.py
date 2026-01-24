@@ -50,7 +50,7 @@ class AccessRequest(models.Model):
 class Registration(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    entry_code = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    entry_code = models.UUIDField(null=True, blank=True, unique=True)
     qr_code = models.ImageField(upload_to='qrcodes', blank=True)
     used = models.BooleanField(default=False)
     
@@ -80,28 +80,18 @@ class Registration(models.Model):
         return self.user.username
 
     def save(self, *args, **kwargs):
-        # Only generate and save a QR code if one isn't already present AND status is confirmed
-        if not self.qr_code and self.status == 'confirmed':
-            filename, file_obj = generate_qr_code(self.entry_code)
-            if filename and file_obj:
-                self.qr_code.save(filename, file_obj, save=False)
+        # Only generate entry_code and QR if status is confirmed
+        if self.status == 'confirmed':
+            # Generate entry_code if not present
+            if not self.entry_code:
+                self.entry_code = uuid.uuid4()
+            # Generate QR image if not present
+            if not self.qr_code:
+                filename, file_obj = generate_qr_code(str(self.entry_code))
+                if filename and file_obj:
+                    self.qr_code.save(filename, file_obj, save=False)
         super().save(*args, **kwargs)
 
-
-class EventDecline(models.Model):
-    """Registro de usuarios que declinaron asistencia a un evento.
-    Separado de Registration para evitar generación de QR.
-    """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_declines')
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='declines')
-    declined_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        unique_together = ['user', 'event']
-        ordering = ['-declined_at']
-    
-    def __str__(self):
-        return f"{self.user.username} declined {self.event.name}"
 
 class EmailLog(models.Model):
     registration = models.ForeignKey(Registration, on_delete=models.SET_NULL, null=True, blank=True, related_name='email_logs')

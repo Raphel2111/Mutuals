@@ -21,26 +21,33 @@ export default function MyEventQR({ eventId, onBack }) {
     function loadData() {
         setLoading(true);
 
+        // Primero cargar evento y registros (siempre funciona)
         Promise.all([
             axios.get(`events/${eventId}/`),
-            axios.get(`registrations/?event=${eventId}&user=${currentUser.id}`),
-            axios.get(`events/${eventId}/check_decline/`)
+            axios.get(`registrations/?event=${eventId}&user=${currentUser.id}`)
         ])
-            .then(([eventRes, regsRes, declineRes]) => {
+            .then(([eventRes, regsRes]) => {
                 setEvent(eventRes.data);
 
                 const payload = regsRes.data;
                 const items = Array.isArray(payload) ? payload : (payload.results || []);
-                // Solo tomar registros confirmados (no declined, ya que usamos tabla separada)
                 const confirmedReg = items.find(r => r.status === 'confirmed') || null;
                 setMyRegistration(confirmedReg);
 
-                // Verificar si declinó
-                setHasDeclined(declineRes.data.declined === true);
+                // Intentar cargar estado de decline (puede fallar si deploy no está listo)
+                return axios.get(`events/${eventId}/check_decline/`)
+                    .then(declineRes => {
+                        setHasDeclined(declineRes.data.declined === true);
+                    })
+                    .catch(err => {
+                        console.warn('check_decline not available yet:', err.message);
+                        setHasDeclined(false);
+                    });
             })
             .catch(err => console.error('Error loading data:', err))
             .finally(() => setLoading(false));
     }
+
 
     function confirmAttendance() {
         if (!currentUser) {

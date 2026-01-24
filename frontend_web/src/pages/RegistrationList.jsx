@@ -18,13 +18,17 @@ export default function RegistrationList() {
             .then(res => {
                 const payload = res.data;
                 const items = Array.isArray(payload) ? payload : (payload.results || []);
+
+                // Filter to show ONLY confirmed registrations (exclude declined)
+                const confirmedItems = items.filter(item => item.status === 'confirmed');
+
                 // Sort by event date descending
-                items.sort((a, b) => {
+                confirmedItems.sort((a, b) => {
                     const dateA = a.event?.date ? new Date(a.event.date) : new Date(0);
                     const dateB = b.event?.date ? new Date(b.event.date) : new Date(0);
                     return dateB - dateA;
                 });
-                setRegs(items);
+                setRegs(confirmedItems);
             })
             .catch(err => console.error('Failed loading registrations', err))
             .finally(() => setLoading(false));

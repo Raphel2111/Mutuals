@@ -302,13 +302,16 @@ class EventViewSet(viewsets.ModelViewSet):
         from .models import Registration
         from django.db.models import Q
         
-        # 1. Find existing personal registrations (attendee_first_name is empty)
-        # We exclude guests (who have names) so we don't accidentally delete them?
-        # Assuming "No Asistiré" refers to the logged-in user themselves.
+        # 1. Find existing personal registrations (attendee_first_name is empty OR type is member)
+        # Broader scope to catch "Named" personal tickets or duplicates.
         existing_regs = Registration.objects.filter(
             event=event, 
             user=user
-        ).filter(Q(attendee_first_name__isnull=True) | Q(attendee_first_name=''))
+        ).filter(
+            Q(attendee_first_name__isnull=True) | 
+            Q(attendee_first_name='') |
+            Q(attendee_type='member')
+        )
         
         # 2. Delete them aggressively (this triggers QR file deletion if handled by signals/methods)
         # But we must ensure QR files are gone. 'delete()' on queryset calls model delete() ?? 

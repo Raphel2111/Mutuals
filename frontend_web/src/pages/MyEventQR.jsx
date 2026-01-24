@@ -67,13 +67,9 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             axios.post(`events/${eventId}/decline_attendance/`)
                 .then(res => {
                     alert('Has registrado que NO asistirás.');
-                    // CRITICAL FIX: The backend deleted the old ID and created a new one!
-                    // We must remove ANY existing personal registration (old ID) from the list.
-                    setRegistrations(prev => {
-                        // Keep guests (who have a name), remove my personal reg (no name)
-                        const others = prev.filter(r => r.attendee_first_name);
-                        return [...others, res.data];
-                    });
+                    // CRITICAL FIX: Reload all data to ensure backend state (Clean Sweep) is perfectly reflected.
+                    // This handles removal of duplicates, named tickets, etc. safely.
+                    loadData();
                     setShowGuestForm(false);
                 })
                 .catch(err => {

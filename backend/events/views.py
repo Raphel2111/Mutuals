@@ -300,18 +300,8 @@ class EventViewSet(viewsets.ModelViewSet):
         """
         event = self.get_object()
         user = request.user
-        # DEBUG: Log what we find before deleting
-        all_user_regs = Registration.objects.filter(event=event, user=user)
-        try:
-            with open('c:\\Users\\Rafa\\Desktop\\EventoApp_Full\\backend\\debug_rsvp.log', 'a') as f:
-                f.write(f"\n--- DECLINE REQUEST {datetime.datetime.now()} ---\n")
-                f.write(f"User: {user.username} (ID: {user.id})\n")
-                f.write(f"Event: {event.name} (ID: {event.id})\n")
-                f.write(f"Found {all_user_regs.count()} total regs for user.\n")
-                for r in all_user_regs:
-                    f.write(f" - Reg ID: {r.id}, Status: {r.status}, Name: '{r.attendee_first_name}', Type: '{r.attendee_type}', QR: {bool(r.qr_code)}\n")
-        except Exception as e:
-            print(f"Log error: {e}")
+        # DEBUG: Log removed for production stability
+        # all_user_regs = Registration.objects.filter(event=event, user=user)
 
         # 1. Find existing personal registrations (attendee_first_name is empty OR type is member)
         # Broader scope to catch "Named" personal tickets or duplicates.

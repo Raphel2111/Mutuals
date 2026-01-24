@@ -291,32 +291,46 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='decline_attendance', permission_classes=[permissions.IsAuthenticated])
     def decline_attendance(self, request, pk=None):
-        """Dedicated endpoint for declining attendance."""
+        """Dedicated endpoint for declining attendance.
+        Strategy: CLEAN SWEEP.
+        Because duplicate registrations might exist (no unique constraint), 
+        we find ALL personal registrations for this event/user and delete them.
+        Then we create a single, fresh 'declined' record.
+        """
         event = self.get_object()
         user = request.user
-        
-        # Check if already registered
         from .models import Registration
-        reg, created = Registration.objects.update_or_create(
+        from django.db.models import Q
+        
+        # 1. Find existing personal registrations (attendee_first_name is empty)
+        # We exclude guests (who have names) so we don't accidentally delete them?
+        # Assuming "No Asistiré" refers to the logged-in user themselves.
+        existing_regs = Registration.objects.filter(
+            event=event, 
+            user=user
+        ).filter(Q(attendee_first_name__isnull=True) | Q(attendee_first_name=''))
+        
+        # 2. Delete them aggressively (this triggers QR file deletion if handled by signals/methods)
+        # But we must ensure QR files are gone. 'delete()' on queryset calls model delete() ?? 
+        # No, bulk delete does NOT call model.delete() method.
+        # We must iterate.
+        for reg in existing_regs:
+            if reg.qr_code:
+                try:
+                    reg.qr_code.delete(save=False)
+                except:
+                    pass
+            reg.delete()
+            
+        # 3. Create FRESH declined record
+        new_reg = Registration.objects.create(
             event=event,
             user=user,
-            defaults={'status': 'declined', 'attendee_type': 'member'}
+            status='declined',
+            attendee_type='member'
         )
         
-        # CRITICAL FIX: If user was previously confirmed, they might have a QR code.
-        # We must explicitly delete it.
-        if reg.qr_code:
-            try:
-                # Delete the physical file
-                reg.qr_code.delete(save=False)
-                # Clear the field
-                reg.qr_code = None
-                reg.save()
-            except Exception as e:
-                # Log error but don't fail the request
-                print(f"Error deleting QR code for declined user: {e}")
-        
-        return Response({'detail': 'Attendance declined', 'status': 'declined', 'id': reg.id}, status=status.HTTP_200_OK)
+        return Response({'detail': 'Attendance declined', 'status': 'declined', 'id': new_reg.id}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='request_access', permission_classes=[permissions.IsAuthenticated])
     def request_access(self, request, pk=None):

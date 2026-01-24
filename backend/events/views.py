@@ -1011,11 +1011,13 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             
             reg = Registration.objects.create(user=request.user, **data)
             
+            # CRITICAL FIX: Set instance so serializer.data works (custom to_representation expects object)
+            serializer.instance = reg
+
             # Return response immediately
             headers = self.get_success_headers(serializer.data)
             # Re-serialize the created object to match expected output structure
-            # We can use the serializer instance logic or just return success message
-            return Response({'detail': 'Registration declined', 'id': reg.id, 'status': 'declined'}, status=status.HTTP_201_CREATED, headers=headers)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)

@@ -85,6 +85,9 @@ class EventViewSet(viewsets.ModelViewSet):
         order_by = self.request.query_params.get('order_by', '-date')
         queryset = queryset.order_by(order_by)
         
+        # Optimize: prefetch related objects to avoid N+1 queries
+        queryset = queryset.select_related('group').prefetch_related('admins')
+        
         return queryset
 
     def perform_create(self, serializer):
@@ -953,6 +956,9 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         user_param = self.request.query_params.get('user')
         if user_param:
             queryset = queryset.filter(user_id=user_param)
+
+        # Optimize: select related to avoid N+1 queries
+        queryset = queryset.select_related('user', 'event')
 
         return queryset
 

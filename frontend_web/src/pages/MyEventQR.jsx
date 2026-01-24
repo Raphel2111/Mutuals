@@ -67,11 +67,12 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             axios.post(`events/${eventId}/decline_attendance/`)
                 .then(res => {
                     alert('Has registrado que NO asistirás.');
-                    // CRITICAL FIX: Replace existing item if it exists, don't just append
+                    // CRITICAL FIX: The backend deleted the old ID and created a new one!
+                    // We must remove ANY existing personal registration (old ID) from the list.
                     setRegistrations(prev => {
-                        const filtered = prev.filter(r => r.id !== res.data.id);
-                        // If we don't have ID (unlikely), just append. But we assume ID is key.
-                        return [...filtered, res.data];
+                        // Keep guests (who have a name), remove my personal reg (no name)
+                        const others = prev.filter(r => r.attendee_first_name);
+                        return [...others, res.data];
                     });
                     setShowGuestForm(false);
                 })
@@ -106,11 +107,24 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             .then(res => {
                 const msg = status === 'declined' ? 'Has registrado que NO asistirás.' : 'Registro exitoso.';
                 alert(msg);
-                // CRITICAL FIX: Replace existing item logic here too
+
+                // CRITICAL FIX: Same logic for standard registration (if updating)
+                // If it's a guest (has name), ID matching is fine (or we just append/refresh).
+                // If it's me (no name), we replace my old one.
+                const isPersonal = !payload.attendee_first_name;
+
                 setRegistrations(prev => {
-                    const filtered = prev.filter(r => r.id !== res.data.id);
-                    return [...filtered, res.data];
+                    if (isPersonal) {
+                        const others = prev.filter(r => r.attendee_first_name);
+                        return [...others, res.data];
+                    } else {
+                        // Guests: just append (or replace by ID if duplicate logic handled elsewhere)
+                        // Ideally we should replace by ID if it exists (update scenario)
+                        const filtered = prev.filter(r => r.id !== res.data.id);
+                        return [...filtered, res.data];
+                    }
                 });
+
                 setShowGuestForm(false);
                 setGuestData({ first_name: '', last_name: '', alias: '', type: 'guest' });
             })

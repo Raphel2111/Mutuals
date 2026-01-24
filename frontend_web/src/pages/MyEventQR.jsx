@@ -62,6 +62,21 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             return;
         }
 
+        // NEW LOGIC: Use dedicated endpoint for declining to ensure robustness
+        if (status === 'declined' && !isGuest) {
+            axios.post(`events/${eventId}/decline_attendance/`)
+                .then(res => {
+                    alert('Has registrado que NO asistirás.');
+                    setRegistrations(prev => [...prev, res.data]);
+                    setShowGuestForm(false);
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error: ' + (err.response?.data?.detail || err.message));
+                });
+            return;
+        }
+
         const payload = {
             event: eventId,
             user: currentUser.id,

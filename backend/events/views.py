@@ -281,6 +281,30 @@ class EventViewSet(viewsets.ModelViewSet):
             'id': reg.id
         }, status=status.HTTP_201_CREATED)
 
+        return Response({
+            'detail': 'Ticket created successfully',
+            'entry_code': reg.entry_code,
+            'qr_code_url': reg.qr_code.url if reg.qr_code else None,
+            'alias': reg.alias,
+            'id': reg.id
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='decline_attendance', permission_classes=[permissions.IsAuthenticated])
+    def decline_attendance(self, request, pk=None):
+        """Dedicated endpoint for declining attendance."""
+        event = self.get_object()
+        user = request.user
+        
+        # Check if already registered
+        from .models import Registration
+        reg, created = Registration.objects.update_or_create(
+            event=event,
+            user=user,
+            defaults={'status': 'declined', 'attendee_type': 'member'}
+        )
+        
+        return Response({'detail': 'Attendance declined', 'status': 'declined', 'id': reg.id}, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'], url_path='request_access', permission_classes=[permissions.IsAuthenticated])
     def request_access(self, request, pk=None):
         """Solicitar acceso a un evento que requiere aprobación"""

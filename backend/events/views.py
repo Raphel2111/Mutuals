@@ -11,7 +11,7 @@ from io import BytesIO
 from django.db import models as dj_models
 import logging
 
-from .models import Event, Registration, EmailLog, DistributionGroup, GroupAccessToken, GroupInvitation, AccessRequest, GroupAccessRequest
+from .models import Event, Registration, EmailLog, DistributionGroup, GroupAccessToken, GroupInvitation, AccessRequest, GroupAccessRequest, EventDecline
 from .serializers import EventSerializer, RegistrationSerializer, AccessRequestSerializer, GroupAccessRequestSerializer
 from .permissions import IsEventAdminOrReadOnly
 from .permissions import IsGroupAdminOrCreatorOrEventAdmin
@@ -160,6 +160,54 @@ class EventViewSet(viewsets.ModelViewSet):
         # Delete all registrations for this user and event
         deleted_count, _ = Registration.objects.filter(event=event, user=u).delete()
         return Response({'detail': f'{deleted_count} registration(s) removed'})
+
+    @action(detail=True, methods=['post'], url_path='decline', permission_classes=[permissions.IsAuthenticated])
+    def decline_attendance(self, request, pk=None):
+        """Registrar que el usuario NO asistirá al evento."""
+        event = self.get_object()
+        user = request.user
+        
+        # Eliminar cualquier registro de confirmación existente
+        Registration.objects.filter(event=event, user=user).delete()
+        
+        # Crear o actualizar el registro de decline
+        decline, created = EventDecline.objects.get_or_create(
+            user=user,
+            event=event
+        )
+        
+        return Response({
+            'detail': 'Has indicado que NO asistirás a este evento.',
+            'declined': True,
+            'declined_at': decline.declined_at
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='undo_decline', permission_classes=[permissions.IsAuthenticated])
+    def undo_decline(self, request, pk=None):
+        """Eliminar el registro de decline para permitir cambiar respuesta."""
+        event = self.get_object()
+        user = request.user
+        
+        deleted, _ = EventDecline.objects.filter(event=event, user=user).delete()
+        
+        return Response({
+            'detail': 'Registro de no asistencia eliminado.',
+            'deleted': deleted > 0
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='check_decline', permission_classes=[permissions.IsAuthenticated])
+    def check_decline(self, request, pk=None):
+        """Verificar si el usuario ha declinado este evento."""
+        event = self.get_object()
+        user = request.user
+        
+        decline = EventDecline.objects.filter(event=event, user=user).first()
+        
+        return Response({
+            'declined': decline is not None,
+            'declined_at': decline.declined_at if decline else None
+        }, status=status.HTTP_200_OK)
+
 
     @action(detail=True, methods=['post'], url_path='request_access', permission_classes=[permissions.IsAuthenticated])
     def request_access(self, request, pk=None):

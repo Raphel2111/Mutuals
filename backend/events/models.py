@@ -88,6 +88,21 @@ class Registration(models.Model):
         super().save(*args, **kwargs)
 
 
+class EventDecline(models.Model):
+    """Registro de usuarios que declinaron asistencia a un evento.
+    Separado de Registration para evitar generación de QR.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_declines')
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='declines')
+    declined_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['user', 'event']
+        ordering = ['-declined_at']
+    
+    def __str__(self):
+        return f"{self.user.username} declined {self.event.name}"
+
 class EmailLog(models.Model):
     registration = models.ForeignKey(Registration, on_delete=models.SET_NULL, null=True, blank=True, related_name='email_logs')
     recipient = models.EmailField()

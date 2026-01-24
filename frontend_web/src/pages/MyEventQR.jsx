@@ -5,6 +5,7 @@ import { fetchCurrentUser } from '../auth';
 export default function MyEventQR({ eventId, onBack }) {
     const [event, setEvent] = useState(null);
     const [myRegistration, setMyRegistration] = useState(null);
+    const [hasDeclined, setHasDeclined] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -14,45 +15,49 @@ export default function MyEventQR({ eventId, onBack }) {
 
     useEffect(() => {
         if (!eventId || !currentUser) return;
-        loadMyQR();
+        loadData();
     }, [eventId, currentUser]);
 
-    function loadMyQR() {
+    function loadData() {
         setLoading(true);
 
         Promise.all([
             axios.get(`events/${eventId}/`),
-            // Solo cargar MIS registros para este evento
-            axios.get(`registrations/?event=${eventId}&user=${currentUser.id}`)
+            axios.get(`registrations/?event=${eventId}&user=${currentUser.id}`),
+            axios.get(`events/${eventId}/check_decline/`)
         ])
-            .then(([eventRes, regsRes]) => {
+            .then(([eventRes, regsRes, declineRes]) => {
                 setEvent(eventRes.data);
+
                 const payload = regsRes.data;
                 const items = Array.isArray(payload) ? payload : (payload.results || []);
+                // Solo tomar registros confirmados (no declined, ya que usamos tabla separada)
+                const confirmedReg = items.find(r => r.status === 'confirmed') || null;
+                setMyRegistration(confirmedReg);
 
-                // Tomar el primer registro (debería haber solo uno por usuario por evento)
-                const myReg = items.length > 0 ? items[0] : null;
-                setMyRegistration(myReg);
+                // Verificar si declinó
+                setHasDeclined(declineRes.data.declined === true);
             })
-            .catch(err => console.error('Error loading QR:', err))
+            .catch(err => console.error('Error loading data:', err))
             .finally(() => setLoading(false));
     }
 
-
-    function createMyRegistration(status = 'confirmed') {
+    function confirmAttendance() {
         if (!currentUser) {
             alert('No se pudo obtener el usuario actual');
             return;
         }
 
-        axios.post('registrations/', { event: eventId, user: currentUser.id, status: status })
+        // Si había declinado, primero eliminar el decline
+        const confirmPromise = hasDeclined
+            ? axios.post(`events/${eventId}/undo_decline/`).then(() => axios.post('registrations/', { event: eventId, user: currentUser.id }))
+            : axios.post('registrations/', { event: eventId, user: currentUser.id });
+
+        confirmPromise
             .then(res => {
                 setMyRegistration(res.data);
-                if (status === 'confirmed') {
-                    alert('Tu QR ha sido generado exitosamente.');
-                } else {
-                    alert('Has indicado que NO asistirás a este evento.');
-                }
+                setHasDeclined(false);
+                alert('Tu QR ha sido generado exitosamente.');
             })
             .catch(err => {
                 console.error('Error creating registration:', err.response?.data || err.message);
@@ -60,22 +65,48 @@ export default function MyEventQR({ eventId, onBack }) {
             });
     }
 
+    function declineAttendance() {
+        axios.post(`events/${eventId}/decline/`)
+            .then(res => {
+                setHasDeclined(true);
+                setMyRegistration(null);
+                alert('Has indicado que NO asistirás a este evento.');
+            })
+            .catch(err => {
+                console.error('Error declining:', err.response?.data || err.message);
+                alert('Error: ' + (err.response?.data?.detail || err.message));
+            });
+    }
+
+    function undoDecline() {
+        if (!window.confirm('¿Cambiar tu respuesta?')) return;
+
+        axios.post(`events/${eventId}/undo_decline/`)
+            .then(() => {
+                setHasDeclined(false);
+                alert('Puedes volver a elegir.');
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('Error: ' + (err.response?.data?.detail || err.message));
+            });
+    }
+
     function deleteRegistration() {
         if (!myRegistration) return;
 
-        if (!window.confirm('¿Cambiar tu respuesta? Esto eliminará tu registro actual.')) return;
+        if (!window.confirm('¿Cancelar tu registro? El QR dejará de funcionar.')) return;
 
         axios.delete(`registrations/${myRegistration.id}/`)
             .then(() => {
                 setMyRegistration(null);
-                alert('Registro eliminado. Puedes volver a elegir.');
+                alert('Registro eliminado.');
             })
             .catch(err => {
                 console.error('Error deleting registration:', err);
                 alert('Error al eliminar: ' + (err.response?.data?.detail || err.message));
             });
     }
-
 
     if (loading) return <div className="container"><p>Cargando...</p></div>;
     if (!event) return <div className="container"><p>Evento no encontrado</p></div>;
@@ -92,29 +123,8 @@ export default function MyEventQR({ eventId, onBack }) {
                 </div>
             </div>
 
-
-            {!myRegistration ? (
-                <div className="card" style={{ marginTop: 20, textAlign: 'center' }}>
-                    <h3>¿Asistirás al evento?</h3>
-                    <p className="muted">Indica tu respuesta para este evento</p>
-                    <div style={{ display: 'flex', gap: 15, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap' }}>
-                        <button
-                            className="btn primary"
-                            style={{ backgroundColor: '#10b981', borderColor: '#059669', fontSize: '1.1em', padding: '12px 24px' }}
-                            onClick={() => createMyRegistration('confirmed')}
-                        >
-                            👍 Sí, Asistiré
-                        </button>
-                        <button
-                            className="btn secondary"
-                            style={{ borderColor: '#ef4444', color: '#dc2626', fontSize: '1.1em', padding: '12px 24px' }}
-                            onClick={() => createMyRegistration('declined')}
-                        >
-                            👎 No Asistiré
-                        </button>
-                    </div>
-                </div>
-            ) : myRegistration.status === 'declined' ? (
+            {/* Estado: Ha declinado */}
+            {hasDeclined && !myRegistration && (
                 <div className="card" style={{ marginTop: 20, textAlign: 'center' }}>
                     <div style={{ padding: 20, backgroundColor: '#fee2e2', borderRadius: 8, color: '#991b1b' }}>
                         <h3 style={{ marginTop: 0 }}>❌ No Asistirás</h3>
@@ -122,13 +132,40 @@ export default function MyEventQR({ eventId, onBack }) {
                         <button
                             className="btn"
                             style={{ marginTop: 15 }}
-                            onClick={deleteRegistration}
+                            onClick={undoDecline}
                         >
                             Cambiar Respuesta
                         </button>
                     </div>
                 </div>
-            ) : (
+            )}
+
+            {/* Estado: Sin respuesta */}
+            {!hasDeclined && !myRegistration && (
+                <div className="card" style={{ marginTop: 20, textAlign: 'center' }}>
+                    <h3>¿Asistirás al evento?</h3>
+                    <p className="muted">Indica tu respuesta para este evento</p>
+                    <div style={{ display: 'flex', gap: 15, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap' }}>
+                        <button
+                            className="btn primary"
+                            style={{ backgroundColor: '#10b981', borderColor: '#059669', fontSize: '1.1em', padding: '12px 24px' }}
+                            onClick={confirmAttendance}
+                        >
+                            👍 Sí, Asistiré
+                        </button>
+                        <button
+                            className="btn secondary"
+                            style={{ borderColor: '#ef4444', color: '#dc2626', fontSize: '1.1em', padding: '12px 24px' }}
+                            onClick={declineAttendance}
+                        >
+                            👎 No Asistiré
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Estado: Confirmado con QR */}
+            {myRegistration && (
                 <div className="card" style={{ marginTop: 20 }}>
                     <h3>Tu código QR personal</h3>
                     <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginTop: 12 }}>
@@ -194,4 +231,4 @@ export default function MyEventQR({ eventId, onBack }) {
             )}
         </div>
     );
-};
+}

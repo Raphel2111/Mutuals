@@ -59,6 +59,7 @@ class EventSerializer(serializers.ModelSerializer):
 class RegistrationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     qr_url = serializers.SerializerMethodField(read_only=True)
+    status = serializers.ChoiceField(choices=Registration.STATUS_CHOICES, required=False)
 
     class Meta:
         model = Registration

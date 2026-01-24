@@ -50,7 +50,8 @@ class AccessRequest(models.Model):
 class Registration(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    entry_code = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    # entry_code is now nullable - only generated for confirmed registrations
+    entry_code = models.UUIDField(default=None, null=True, blank=True, unique=True)
     qr_code = models.ImageField(upload_to='qrcodes', blank=True)
     used = models.BooleanField(default=False)
     
@@ -80,11 +81,18 @@ class Registration(models.Model):
         return self.user.username
 
     def save(self, *args, **kwargs):
-        # Only generate and save a QR code if one isn't already present AND status is confirmed
-        if not self.qr_code and self.status == 'confirmed':
-            filename, file_obj = generate_qr_code(self.entry_code)
-            if filename and file_obj:
-                self.qr_code.save(filename, file_obj, save=False)
+        # Only generate entry_code and QR for confirmed registrations
+        if self.status == 'confirmed':
+            if not self.entry_code:
+                self.entry_code = uuid.uuid4()
+            if not self.qr_code:
+                filename, file_obj = generate_qr_code(self.entry_code)
+                if filename and file_obj:
+                    self.qr_code.save(filename, file_obj, save=False)
+        else:
+            # Declined or pending: no entry code, no QR
+            self.entry_code = None
+            self.qr_code = ''
         super().save(*args, **kwargs)
 
 

@@ -958,7 +958,17 @@ class RegistrationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # Explicitly pass status if present to ensure it's saved correctly
-        status_val = self.request.data.get('status')
+        # Check both keys
+        status_val = self.request.data.get('rsvp_status') or self.request.data.get('status')
+        
+        # Debug Log
+        try:
+             with open('rsvp_debug.log', 'a') as f:
+                 f.write(f"RSVP REQUEST: User {self.request.user.id} Body: {self.request.data} -> Status: {status_val}\n")
+        except:
+             pass
+
+        # BRUTE FORCE FIX: If declining, create object directly to bypass any serializer issues
         
         # BRUTE FORCE FIX: If declining, create object directly to bypass any serializer issues
         if status_val == 'declined':

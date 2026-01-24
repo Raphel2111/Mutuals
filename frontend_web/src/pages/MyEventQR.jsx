@@ -65,7 +65,8 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
         const payload = {
             event: eventId,
             user: currentUser.id,
-            status: status
+            status: status, // Keep original for consistency if needed by other things?
+            rsvp_status: status // New explicit field
         };
 
         if (isGuest) {

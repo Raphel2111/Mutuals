@@ -991,6 +991,32 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             serializer.save()
 
     def create(self, request, *args, **kwargs):
+        # LOGGING
+        try:
+             with open('rsvp_debug_create.log', 'a') as f:
+                 f.write(f"CREATE CALL: {request.data}\n")
+        except:
+             pass
+
+        # BRUTE FORCE CHECK IN CREATE
+        status_val = request.data.get('rsvp_status') or request.data.get('status')
+        if status_val == 'declined':
+            # Manual creation
+            from .models import Registration
+            serializer = self.get_serializer(data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            
+            data = {k: v for k, v in serializer.validated_data.items() if k != 'user'}
+            data['status'] = 'declined'
+            
+            reg = Registration.objects.create(user=request.user, **data)
+            
+            # Return response immediately
+            headers = self.get_success_headers(serializer.data)
+            # Re-serialize the created object to match expected output structure
+            # We can use the serializer instance logic or just return success message
+            return Response({'detail': 'Registration declined', 'id': reg.id, 'status': 'declined'}, status=status.HTTP_201_CREATED, headers=headers)
+
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         

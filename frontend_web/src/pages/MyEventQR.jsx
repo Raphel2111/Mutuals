@@ -67,7 +67,12 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             axios.post(`events/${eventId}/decline_attendance/`)
                 .then(res => {
                     alert('Has registrado que NO asistirás.');
-                    setRegistrations(prev => [...prev, res.data]);
+                    // CRITICAL FIX: Replace existing item if it exists, don't just append
+                    setRegistrations(prev => {
+                        const filtered = prev.filter(r => r.id !== res.data.id);
+                        // If we don't have ID (unlikely), just append. But we assume ID is key.
+                        return [...filtered, res.data];
+                    });
                     setShowGuestForm(false);
                 })
                 .catch(err => {
@@ -101,7 +106,11 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             .then(res => {
                 const msg = status === 'declined' ? 'Has registrado que NO asistirás.' : 'Registro exitoso.';
                 alert(msg);
-                setRegistrations(prev => [...prev, res.data]);
+                // CRITICAL FIX: Replace existing item logic here too
+                setRegistrations(prev => {
+                    const filtered = prev.filter(r => r.id !== res.data.id);
+                    return [...filtered, res.data];
+                });
                 setShowGuestForm(false);
                 setGuestData({ first_name: '', last_name: '', alias: '', type: 'guest' });
             })

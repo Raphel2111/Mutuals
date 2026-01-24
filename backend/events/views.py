@@ -10,7 +10,6 @@ from django.utils import timezone
 from io import BytesIO
 from django.db import models as dj_models
 import logging
-import datetime
 
 from .models import Event, Registration, EmailLog, DistributionGroup, GroupAccessToken, GroupInvitation, AccessRequest, GroupAccessRequest
 from .serializers import EventSerializer, RegistrationSerializer, AccessRequestSerializer, GroupAccessRequestSerializer
@@ -136,17 +135,6 @@ class EventViewSet(viewsets.ModelViewSet):
     def participants(self, request, pk=None):
         """Get all participants (users with registrations) for this event"""
         event = self.get_object()
-        
-        # ACCESS CONTROL: Only admins/staff can see participant list
-        user = request.user
-        is_admin = (
-            user.is_staff or 
-            event.admins.filter(pk=user.pk).exists() or 
-            (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
-        )
-        if not is_admin:
-            return Response({'detail': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
-
         registrations = Registration.objects.filter(event=event).select_related('user')
         from users.serializers import UserSerializer
         # Get unique users
@@ -172,150 +160,6 @@ class EventViewSet(viewsets.ModelViewSet):
         # Delete all registrations for this user and event
         deleted_count, _ = Registration.objects.filter(event=event, user=u).delete()
         return Response({'detail': f'{deleted_count} registration(s) removed'})
-
-    @action(detail=True, methods=['get'], url_path='export_registrations')
-    def export_registrations(self, request, pk=None):
-        """Export registrations to CSV"""
-        event = self.get_object()
-        
-        # Check permissions
-        user = request.user
-        if not user.is_authenticated:
-            return Response({'detail': 'Debes iniciar sesión.'}, status=status.HTTP_401_UNAUTHORIZED)
-            
-        is_event_admin = event.admins.filter(pk=user.pk).exists()
-        
-        is_group_admin = False
-        if event.group:
-            is_group_admin = (
-                event.group.admins.filter(pk=user.pk).exists() or 
-                event.group.creators.filter(pk=user.pk).exists()
-            )
-        
-        if not (user.is_staff or is_event_admin or is_group_admin):
-             print(f"DEBUG EXPORT DENIED: User {user.id} Event {event.id} Group {event.group_id if event.group else 'None'} | Staff:{user.is_staff} EvAdmin:{is_event_admin} GrpAdmin:{is_group_admin}")
-             return Response({'detail': 'No tienes permisos para exportar.'}, status=status.HTTP_403_FORBIDDEN)
-             
-        import csv
-        from django.http import HttpResponse
-        
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="participantes_{event.id}.csv"'
-        response.write(u'\ufeff'.encode('utf8')) # BOM for Excel to open UTF-8 correctly
-        
-        # Use semicolon for Excel in Spanish/European locales
-        writer = csv.writer(response, delimiter=';')
-        writer.writerow(['ID', 'Usuario (Cuenta)', 'Email', 'Teléfono', 'Asistente (Nombre)', 'Tipo', 'Usado', 'Código'])
-        
-        registrations = Registration.objects.filter(event=event).select_related('user')
-        
-        for reg in registrations:
-            # Determine attendee name
-            attendee_name = reg.get_attendee_name()
-            
-            # Determine attendee type label
-            type_map = {'member': 'Fallero', 'guest': 'Invitado', 'child': 'Niño'}
-            type_label = type_map.get(reg.attendee_type, reg.attendee_type)
-            
-            # User info
-            user_full_name = reg.user.get_full_name() or reg.user.username
-            user_email = reg.user.email
-            user_phone = getattr(reg.user, 'phone', '')
-            
-            writer.writerow([
-                reg.id,
-                user_full_name,
-                user_email,
-                user_phone,
-                attendee_name,
-                type_label,
-                'Sí' if reg.used else 'No',
-                str(reg.entry_code)
-            ])
-            
-        return response
-        
-    @action(detail=True, methods=['post'], url_path='create_manual_ticket')
-    def create_manual_ticket(self, request, pk=None):
-        """Allow admins to manually create a ticket/QR for a user."""
-        event = self.get_object()
-        user_id = request.data.get('user_id')
-        alias = request.data.get('alias', '')
-        
-        if not user_id:
-            return Response({'detail': 'user_id required'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Check permissions (Event admin or Group admin)
-        user = request.user
-        is_event_admin = event.admins.filter(pk=user.pk).exists()
-        is_group_admin = False
-        if event.group:
-            is_group_admin = (
-                event.group.admins.filter(pk=user.pk).exists() or 
-                event.group.creators.filter(pk=user.pk).exists()
-            )
-        
-        if not (user.is_staff or is_event_admin or is_group_admin):
-            return Response({'detail': 'No tienes permisos para crear tickets manuales.'}, status=status.HTTP_403_FORBIDDEN)
-            
-        from users.models import User as UserModel
-        from .models import Registration
-        try:
-            target_user = UserModel.objects.get(pk=user_id)
-        except UserModel.DoesNotExist:
-             return Response({'detail': 'Usuario destino no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-             
-        # Create registration
-        # Note: We allow multiples
-        reg = Registration.objects.create(
-            user=target_user,
-            event=event,
-            alias=alias,
-            attendee_type='guest' # Asignado manualmente suele ser invitado o especial
-        )
-        
-        return Response({
-            'detail': 'Ticket created successfully',
-            'entry_code': reg.entry_code,
-            'qr_code_url': reg.qr_code.url if reg.qr_code else None,
-            'alias': reg.alias,
-            'id': reg.id
-        }, status=status.HTTP_201_CREATED)
-
-        return Response({
-            'detail': 'Ticket created successfully',
-            'entry_code': reg.entry_code,
-            'qr_code_url': reg.qr_code.url if reg.qr_code else None,
-            'alias': reg.alias,
-            'id': reg.id
-        }, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=['post'], url_path='wipe_db', permission_classes=[permissions.IsAdminUser])
-    def wipe_db(self, request):
-        """EMERGENCY ENDPOINT: Wipes all data. SUPERUSER ONLY."""
-        if not request.user.is_superuser:
-            return Response({'detail': 'Requires Superuser.'}, status=status.HTTP_403_FORBIDDEN)
-        
-        # WIPE LOGIC
-        from .models import Registration, Event, DistributionGroup, GroupInvitation, AccessRequest, GroupAccessRequest
-        count_reg, _ = Registration.objects.all().delete()
-        count_inv, _ = GroupInvitation.objects.all().delete()
-        count_ar, _ = AccessRequest.objects.all().delete()
-        count_gar, _ = GroupAccessRequest.objects.all().delete()
-        count_ev, _ = Event.objects.all().delete()
-        count_grp, _ = DistributionGroup.objects.all().delete()
-        
-        return Response({
-            'detail': 'DATABASE WIPED SUCCESSFULLY',
-            'deleted': {
-                'registrations': count_reg,
-                'events': count_ev,
-                'groups': count_grp,
-                'invitations': count_inv
-            }
-        }, status=status.HTTP_200_OK)
-
-
 
     @action(detail=True, methods=['post'], url_path='request_access', permission_classes=[permissions.IsAuthenticated])
     def request_access(self, request, pk=None):
@@ -975,66 +819,12 @@ class RegistrationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Registration.objects.all()
-
-        if not user.is_staff:
-            # Base visibility: own registrations OR registrations for events I admin
-            queryset = queryset.filter(dj_models.Q(user=user) | dj_models.Q(event__admins=user)).distinct()
-
-        # Apply specific filters if provided
-        event_id = self.request.query_params.get('event')
-        if event_id:
-            queryset = queryset.filter(event_id=event_id)
-        
-        user_param = self.request.query_params.get('user')
-        if user_param:
-            queryset = queryset.filter(user_id=user_param)
-
-        return queryset
-
-    def perform_create(self, serializer):
-        # Explicitly pass status if present to ensure it's saved correctly
-        # Check both keys
-        status_val = self.request.data.get('rsvp_status') or self.request.data.get('status')
-        
-        # Debug Log
-        try:
-             with open('rsvp_debug.log', 'a') as f:
-                 f.write(f"RSVP REQUEST: User {self.request.user.id} Body: {self.request.data} -> Status: {status_val}\n")
-        except:
-             pass
-
-        # BRUTE FORCE FIX: If declining, create object directly to bypass any serializer issues
-        
-        # BRUTE FORCE FIX: If declining, create object directly to bypass any serializer issues
-        if status_val == 'declined':
-            user = self.request.user
-            # Get valid data from serializer (event, etc.)
-            data = {k: v for k, v in serializer.validated_data.items() if k != 'user'}
-            data['status'] = 'declined'
-            
-            from .models import Registration
-            # Create directly in DB
-            instance = Registration.objects.create(user=user, **data)
-            
-            # IMPORTANT: Set instance on serializer so the view can confirm it
-            serializer.instance = instance
-            return
-
-        if status_val in ['confirmed', 'declined', 'pending']:
-            serializer.save(status=status_val)
-        else:
-            serializer.save()
+        if user.is_staff:
+            return Registration.objects.all()
+        # Users see their own registrations or registrations for events they administer
+        return Registration.objects.filter(dj_models.Q(user=user) | dj_models.Q(event__admins=user)).distinct()
 
     def create(self, request, *args, **kwargs):
-        # LOGGING
-        try:
-             with open('rsvp_debug_create.log', 'a') as f:
-                 f.write(f"CREATE CALL: {request.data}\n")
-        except:
-             pass
-
-
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         
@@ -1043,92 +833,95 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         event = None
         if event_id:
             event = Event.objects.filter(pk=event_id.pk).first()
-            if event:
-                # Check admin privileges
-                user = request.user
-                is_admin = (
-                    user.is_staff or 
-                    event.admins.filter(pk=user.pk).exists() or 
-                    (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
-                )
-
-                # Check registration deadline (Skip if admin)
-                if not is_admin and event.registration_deadline and timezone.now() > event.registration_deadline:
+            if event and event.max_qr_codes:
+                current_count = Registration.objects.filter(event=event).count()
+                if current_count >= event.max_qr_codes:
                     from rest_framework.exceptions import ValidationError
-                    raise ValidationError({'detail': 'El plazo de inscripción para este evento ha finalizado.'})
-
-                # Check global capacity (Skip if admin)
-                current_total = Registration.objects.filter(event=event).count()
-                if not is_admin and event.capacity and current_total >= event.capacity:
-                     from rest_framework.exceptions import ValidationError
-                     raise ValidationError({'detail': 'El evento ha alcanzado su capacidad máxima.'})
-
-                # Check max_qr_codes limit (Per User) - Admins might want multiple QRs so skip this too?
-                # User asked "generate qr for people", implies force-adding.
-                if event.max_qr_codes:
-                    user_count = Registration.objects.filter(event=event, user=request.user).count()
-                    if not is_admin and user_count >= event.max_qr_codes:
-                        from rest_framework.exceptions import ValidationError
-                        raise ValidationError({'detail': f'Límite personal alcanzado. Solo puedes tener {event.max_qr_codes} tickets/QRs para este evento.'})
-
-                # Check Private Event Access (Skip if admin)
-                if not is_admin and not event.is_public and event.group:
-                    is_member = event.group.members.filter(pk=user.pk).exists()
-                    if not is_member:
-                        from rest_framework.exceptions import ValidationError
-                        raise ValidationError({'detail': 'Este evento es privado. Debes ser miembro del grupo para inscribirte.'})
+                    raise ValidationError({'detail': f'Límite de registros alcanzado. Este evento solo permite {event.max_qr_codes} registros/QR.'})
         
-        # All events are now treated as free (Wallet/Payment removed)
-        self.perform_create(serializer)
-        registration = serializer.instance
+        # Check if event has a price and process payment
+        user = request.user
+        if event and event.price > 0:
+            # Get or create user's wallet
+            wallet, created = Wallet.objects.get_or_create(user=user)
+            
+            # Check if user has sufficient balance
+            if wallet.balance < event.price:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({
+                    'detail': f'Saldo insuficiente. Necesitas {event.price} {wallet.currency} pero solo tienes {wallet.balance} {wallet.currency}.',
+                    'required': float(event.price),
+                    'available': float(wallet.balance)
+                })
+            
+            # Deduct payment from wallet
+            wallet.balance -= event.price
+            wallet.save()
+            
+            # Create registration
+            self.perform_create(serializer)
+            registration = serializer.instance
+            
+            # Create transaction record
+            Transaction.objects.create(
+                wallet=wallet,
+                amount=-event.price,
+                transaction_type='payment',
+                description=f'Pago por entrada a {event.name}',
+                event=event,
+                balance_after=wallet.balance
+            )
+        else:
+            # Free event, just create registration
+            self.perform_create(serializer)
+            registration = serializer.instance
 
-        # Generate PDF and send by email to the registrant if email is available AND status is confirmed
-        if registration.status == 'confirmed':
-            try:
-                pdf_bytes = generate_ticket_pdf_bytes(registration)
-                recipient = getattr(registration.user, 'email', None)
+        # Generate PDF and send by email to the registrant if email is available
+        try:
+            pdf_bytes = generate_ticket_pdf_bytes(registration)
+            recipient = getattr(registration.user, 'email', None)
 
-                if recipient:
-                    subject = f'Ticket for {registration.event.name}'
-                    body = f'Adjunto su entrada para {registration.event.name}. Código: {registration.entry_code}'
-                    email = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient])
-                    email.attach(f'ticket_{registration.entry_code}.pdf', pdf_bytes, 'application/pdf')
-                    try:
-                        send_result = email.send(fail_silently=False)
-                        # record success in EmailLog
-                        EmailLog.objects.create(
-                            registration=registration,
-                            recipient=recipient,
-                            subject=subject,
-                            body=body,
-                            success=True,
-                        )
-                    except Exception as e:
-                        # log the exception and record failure
-                        logger.error('Failed sending ticket email to %s: %s', recipient, str(e))
-                        EmailLog.objects.create(
-                            registration=registration,
-                            recipient=recipient,
-                            subject=subject,
-                            body=body,
-                            success=False,
-                            error_text=str(e),
-                        )
-            except Exception as e:
-                # PDF generation or other failure — log it and record an EmailLog entry if possible
-                logger.error('Failed to generate/send ticket for registration %s: %s', registration.pk, str(e))
-                recipient = getattr(registration.user, 'email', None)
+            if recipient:
+                subject = f'Ticket for {registration.event.name}'
+                body = f'Adjunto su entrada para {registration.event.name}. Código: {registration.entry_code}'
+                email = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient])
+                email.attach(f'ticket_{registration.entry_code}.pdf', pdf_bytes, 'application/pdf')
                 try:
+                    send_result = email.send(fail_silently=False)
+                    # record success in EmailLog
                     EmailLog.objects.create(
                         registration=registration,
-                        recipient=recipient or '',
-                        subject=f'Ticket for {registration.event.name}',
-                        body='',
+                        recipient=recipient,
+                        subject=subject,
+                        body=body,
+                        success=True,
+                    )
+                except Exception as e:
+                    # log the exception and record failure
+                    logger.error('Failed sending ticket email to %s: %s', recipient, str(e))
+                    EmailLog.objects.create(
+                        registration=registration,
+                        recipient=recipient,
+                        subject=subject,
+                        body=body,
                         success=False,
                         error_text=str(e),
                     )
-                except Exception:
-                    pass
+        except Exception as e:
+            # PDF generation or other failure — log it and record an EmailLog entry if possible
+            logger.error('Failed to generate/send ticket for registration %s: %s', registration.pk, str(e))
+            recipient = getattr(registration.user, 'email', None)
+            try:
+                EmailLog.objects.create(
+                    registration=registration,
+                    recipient=recipient or '',
+                    subject=f'Ticket for {registration.event.name}',
+                    body='',
+                    success=False,
+                    error_text=str(e),
+                )
+            except Exception:
+                pass
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -1142,79 +935,15 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         user = request.user
         event = registration.event
         is_admin = user.is_staff or event.admins.filter(pk=user.pk).exists()
+        if not (is_admin or registration.user == user):
+            return Response({'detail': 'No permission to download this ticket.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Use helper to build PDF bytes
+        pdf_bytes = generate_ticket_pdf_bytes(registration)
         filename = f'ticket_{registration.entry_code}.pdf'
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
-
-
-
-    @action(detail=False, methods=['post'], url_path='validate_qr', permission_classes=[permissions.IsAuthenticated])
-    def verify_qr_scan(self, request):
-        qr_content = request.data.get('qr_content')
-        if not qr_content:
-            return Response({'valid': False, 'message': 'No QR content provided.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Assuming qr_content is the UUID string
-        try:
-            # Try to match the UUID directly
-            registration = Registration.objects.filter(entry_code=qr_content).first()
-            if not registration:
-                # If content is a URL, try to extract UUID (rudimentary check)
-                import uuid
-                try:
-                    # Look for uuid pattern
-                    parts = qr_content.split('/')
-                    possible_id = parts[-1]
-                    uuid.UUID(possible_id) # validates format
-                    registration = Registration.objects.filter(entry_code=possible_id).first()
-                except ValueError:
-                    pass
-
-            if not registration:
-                return Response({'valid': False, 'message': 'Código QR no encontrado en el sistema.'}, status=status.HTTP_404_NOT_FOUND)
-
-            # Check permissions: User must be admin of the event OR admin of the group
-            user = request.user
-            event = registration.event
-            
-            is_event_admin = event.admins.filter(pk=user.pk).exists()
-            # Check if user is admin of the group related to the event
-            is_group_admin = False
-            if event.group:
-                is_group_admin = event.group.admins.filter(pk=user.pk).exists()
-            
-            is_admin = user.is_staff or is_event_admin or is_group_admin
-            
-            if not is_admin:
-                 return Response({'valid': False, 'message': 'No tienes permisos de administrador para este evento.'}, status=status.HTTP_403_FORBIDDEN)
-
-            # Check usage
-            if registration.used:
-                attendee_name = registration.get_attendee_name()
-                return Response({
-                    'valid': False, 
-                    'message': f'QR YA UTILIZADO anteriormente.',
-                    'attendee': attendee_name,
-                    'event': event.name,
-                    'attended_at': registration.attended_at
-                })
-
-            # Mark as used
-            registration.used = True
-            registration.attended_at = timezone.now()
-            registration.save()
-            
-            attendee_name = registration.get_attendee_name()
-            return Response({
-                'valid': True, 
-                'message': 'Entrada Válida. Acceso permitido.', 
-                'attendee': attendee_name,
-                'event': event.name
-            })
-
-        except Exception as e:
-            return Response({'valid': False, 'message': f'Error validando: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], url_path='validate_qr')
     def validate_qr(self, request, pk=None):
@@ -1223,8 +952,6 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         user = request.user
         event = registration.event
         
-        from django.db import transaction
-
         # Check if event belongs to a group and user is admin of that group
         if event.group:
             is_group_admin = event.group.admins.filter(pk=user.pk).exists()
@@ -1237,26 +964,21 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             if not is_admin:
                 return Response({'detail': 'No tienes permisos para validar este QR.'}, status=status.HTTP_403_FORBIDDEN)
         
-        with transaction.atomic():
-            # Lock the row to prevent race conditions
-            locked_reg = Registration.objects.select_for_update().get(pk=registration.pk)
-            
-            if locked_reg.used:
-                return Response({
-                    'detail': 'Este QR ya fue usado anteriormente.',
-                    'already_used': True,
-                    'registration': RegistrationSerializer(locked_reg).data
-                }, status=status.HTTP_200_OK)
-            
-            locked_reg.used = True
-            locked_reg.attended_at = timezone.now()
-            locked_reg.save()
-            
+        if registration.used:
             return Response({
-                'detail': 'QR validado exitosamente.',
-                'already_used': False,
-                'registration': RegistrationSerializer(locked_reg).data
+                'detail': 'Este QR ya fue usado anteriormente.',
+                'already_used': True,
+                'registration': RegistrationSerializer(registration).data
             }, status=status.HTTP_200_OK)
+        
+        registration.used = True
+        registration.save()
+        
+        return Response({
+            'detail': 'QR validado exitosamente.',
+            'already_used': False,
+            'registration': RegistrationSerializer(registration).data
+        }, status=status.HTTP_200_OK)
 
 
 class GroupAccessTokenViewSet(viewsets.ModelViewSet):

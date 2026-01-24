@@ -89,10 +89,10 @@ class Registration(models.Model):
                 filename, file_obj = generate_qr_code(self.entry_code)
                 if filename and file_obj:
                     self.qr_code.save(filename, file_obj, save=False)
-        else:
-            # Declined or pending: no entry code, no QR
+        elif self.status == 'declined':
+            # Declined: clear entry code but don't touch qr_code field incorrectly
             self.entry_code = None
-            self.qr_code = ''
+        # For 'pending' status, leave as-is
         super().save(*args, **kwargs)
 
 

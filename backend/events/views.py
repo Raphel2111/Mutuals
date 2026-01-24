@@ -302,6 +302,8 @@ class EventViewSet(viewsets.ModelViewSet):
         user = request.user
         # DEBUG: Log removed for production stability
         # all_user_regs = Registration.objects.filter(event=event, user=user)
+        from .models import Registration
+        from django.db.models import Q
 
         # 1. Find existing personal registrations (attendee_first_name is empty OR type is member)
         # Broader scope to catch "Named" personal tickets or duplicates.

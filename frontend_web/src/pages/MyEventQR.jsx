@@ -290,6 +290,32 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
                     </div>
                 </>
             )}
+
+            {/* EMERGENCY WIPE BUTTON - TODO: REMOVE BEFORE PRODUCTION */}
+            {event && event.is_admin && (
+                <div style={{ marginTop: 50, padding: 20, border: '2px dashed red', borderRadius: 8, textAlign: 'center' }}>
+                    <h4 style={{ color: 'red' }}>⚠️ ZONA DE PELIGRO</h4>
+                    <p>Esto borrará TODOS los eventos y datos de la base de datos.</p>
+                    <button
+                        className="btn"
+                        style={{ backgroundColor: 'red', color: 'white' }}
+                        onClick={() => {
+                            if (window.confirm('¿ESTÁ SEGURO? ESTO BORRARÁ TODO (Eventos, Grupos, Inscripciones)')) {
+                                axios.post(`events/wipe_db/`)
+                                    .then(() => {
+                                        alert('BASE DE DATOS BORRADA COMPLETAMENTE.');
+                                        window.location.reload();
+                                    })
+                                    .catch(err => alert('Error: ' + (err.response?.data?.detail || err.message)));
+                            }
+                        }}
+                    >
+                        ☢️ BOMBA NUCLEAR (WIPE DB)
+                    </button>
+                    <p style={{ fontSize: '0.8em', color: '#666', marginTop: 10 }}>Solo visible para Admins</p>
+                </div>
+            )}
+
         </div>
     );
 }

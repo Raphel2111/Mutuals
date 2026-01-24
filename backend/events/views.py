@@ -290,6 +290,31 @@ class EventViewSet(viewsets.ModelViewSet):
             'id': reg.id
         }, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['post'], url_path='wipe_db', permission_classes=[permissions.IsAdminUser])
+    def wipe_db(self, request):
+        """EMERGENCY ENDPOINT: Wipes all data. SUPERUSER ONLY."""
+        if not request.user.is_superuser:
+            return Response({'detail': 'Requires Superuser.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # WIPE LOGIC
+        from .models import Registration, Event, DistributionGroup, GroupInvitation, AccessRequest, GroupAccessRequest
+        count_reg, _ = Registration.objects.all().delete()
+        count_inv, _ = GroupInvitation.objects.all().delete()
+        count_ar, _ = AccessRequest.objects.all().delete()
+        count_gar, _ = GroupAccessRequest.objects.all().delete()
+        count_ev, _ = Event.objects.all().delete()
+        count_grp, _ = DistributionGroup.objects.all().delete()
+        
+        return Response({
+            'detail': 'DATABASE WIPED SUCCESSFULLY',
+            'deleted': {
+                'registrations': count_reg,
+                'events': count_ev,
+                'groups': count_grp,
+                'invitations': count_inv
+            }
+        }, status=status.HTTP_200_OK)
+
 
 
     @action(detail=True, methods=['post'], url_path='request_access', permission_classes=[permissions.IsAuthenticated])

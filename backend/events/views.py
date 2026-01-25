@@ -185,7 +185,7 @@ class EventViewSet(viewsets.ModelViewSet):
         # Fix for Excel (BOM)
         response.write(u'\ufeff'.encode('utf8'))
 
-        writer = csv.writer(response)
+        writer = csv.writer(response, delimiter=';')
         writer.writerow(['Nombre', 'Apellido', 'Usuario (App)', 'Email', 'Rol', 'Estado', 'Entrada Usada', 'Hora Escaneo', 'Código Entrada', 'Alias'])
 
         registrations = Registration.objects.filter(event=event).select_related('user')

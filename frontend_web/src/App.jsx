@@ -152,7 +152,6 @@ function App() {
                     <div className="nav-header">
                         <div className="brand" onClick={() => setView('events')} style={{ cursor: 'pointer' }}>
                             <BrandLogo />
-                            <h1 style={{ margin: 0, fontSize: '1.5em' }}>La Terreta</h1>
                         </div>
 
                         {/* Auth buttons for mobile header if needed, but usually in bottom nav profiles or separate */}

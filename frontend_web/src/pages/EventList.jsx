@@ -93,169 +93,151 @@ export default function EventList() {
 
     if (loading) {
         return (
-            <div className="container">
-                <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                    <p style={{ color: 'var(--muted)' }}>Cargando eventos...</p>
+            <div className="container" style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <div style={{ marginBottom: '20px' }}>
+                    <div className="skeleton" style={{ height: '40px', marginBottom: '20px', borderRadius: '12px' }}></div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <div className="skeleton" style={{ height: '36px', width: '100px', borderRadius: '10px' }}></div>
+                        <div className="skeleton" style={{ height: '36px', width: '100px', borderRadius: '10px' }}></div>
+                        <div className="skeleton" style={{ height: '36px', width: '100px', borderRadius: '10px' }}></div>
+                    </div>
                 </div>
+                {[1, 2, 3].map(i => (
+                    <div className="card" key={i} style={{ marginBottom: '16px', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                            <div className="skeleton" style={{ height: '24px', width: '60%' }}></div>
+                            <div className="skeleton" style={{ height: '24px', width: '20%' }}></div>
+                        </div>
+                        <div className="skeleton" style={{ height: '16px', width: '40%', marginBottom: '8px' }}></div>
+                        <div className="skeleton" style={{ height: '16px', width: '100%', marginBottom: '8px' }}></div>
+                        <div className="skeleton" style={{ height: '16px', width: '80%' }}></div>
+                    </div>
+                ))}
             </div>
         );
     }
 
     return (
-        <div className="container">
-            <div style={{ marginBottom: '28px' }}>
-                <h1 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700' }}>Explora la Terreta 🍊</h1>
-                <p style={{ margin: 0, color: 'var(--muted)' }}>
-                    Descubre {events.length} {events.length === 1 ? 'plan' : 'planes'} cerca de ti
+        <div className="container" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '80px' }}>
+            <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <h1 style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text)', marginBottom: '4px', letterSpacing: '-0.5px' }}>
+                    Explora la Terreta 🍊
+                </h1>
+                <p style={{ color: 'var(--muted)', fontSize: '15px' }}>
+                    {events.length} {events.length === 1 ? 'plan disponible' : 'planes disponibles'}
                 </p>
             </div>
 
-            {/* Barra de búsqueda y filtros */}
-            <div className="card" style={{ marginBottom: '24px', padding: '20px' }}>
-                <div style={{ marginBottom: '16px' }}>
+            {/* Search & Filters */}
+            <div style={{ marginBottom: '24px' }}>
+                <div className="search-container">
+                    <span className="search-icon">🔍</span>
                     <input
+                        className="search-input"
                         type="text"
-                        placeholder="🔍 Buscar eventos por nombre, descripción o ubicación..."
+                        placeholder="Buscar eventos..."
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            fontSize: '14px',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '8px',
-                            outline: 'none',
-                            transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                        onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                     />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                    {/* Filtro de visibilidad */}
-                    <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#64748b' }}>
-                            Visibilidad
-                        </label>
-                        <select
-                            value={visibilityFilter}
-                            onChange={(e) => setVisibilityFilter(e.target.value)}
-                            style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-                        >
-                            <option value="all">Todos</option>
-                            <option value="public">Públicos</option>
-                            <option value="private">Privados</option>
-                        </select>
-                    </div>
+                <div className="filter-group">
+                    <select
+                        className="filter-select"
+                        value={visibilityFilter}
+                        onChange={(e) => setVisibilityFilter(e.target.value)}
+                    >
+                        <option value="all">👁️ Todos</option>
+                        <option value="public">🌍 Públicos</option>
+                        <option value="private">🔒 Privados</option>
+                    </select>
 
-                    {/* Filtro de grupo */}
-                    <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#64748b' }}>
-                            Grupo
-                        </label>
-                        <select
-                            value={selectedGroup}
-                            onChange={(e) => setSelectedGroup(e.target.value)}
-                            style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-                        >
-                            <option value="">Todos los grupos</option>
-                            {groups.map(g => (
-                                <option key={g.id} value={g.id}>{g.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        className="filter-select"
+                        value={selectedGroup}
+                        onChange={(e) => setSelectedGroup(e.target.value)}
+                    >
+                        <option value="">📂 Todos los grupos</option>
+                        {groups.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                    </select>
 
-
-
-                    {/* Ordenamiento */}
-                    <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#64748b' }}>
-                            Ordenar por
-                        </label>
-                        <select
-                            value={orderBy}
-                            onChange={(e) => setOrderBy(e.target.value)}
-                            style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-                        >
-                            <option value="-date">Más recientes</option>
-                            <option value="date">Más próximos</option>
-                            <option value="name">Nombre (A-Z)</option>
-                            <option value="-name">Nombre (Z-A)</option>
-                        </select>
-                    </div>
+                    <select
+                        className="filter-select"
+                        value={orderBy}
+                        onChange={(e) => setOrderBy(e.target.value)}
+                    >
+                        <option value="-date">📅 Más recientes</option>
+                        <option value="date">⏳ Próximos</option>
+                        <option value="name">🔤 Nombre (A-Z)</option>
+                    </select>
                 </div>
             </div>
 
             {events.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>📭</div>
-                    <h3 style={{ margin: '0 0 8px 0', color: 'var(--muted)' }}>Sin eventos disponibles</h3>
-                    <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>Por el momento no hay eventos disponibles. Vuelve más tarde.</p>
+                <div className="card" style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: 'var(--surface)' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🪁</div>
+                    <h3 style={{ margin: '0 0 8px 0', color: 'var(--text)', fontWeight: '700' }}>No hay planes por aquí</h3>
+                    <p style={{ margin: 0, color: 'var(--muted)', fontSize: '15px', lineHeight: '1.5' }}>
+                        No hemos encontrado eventos con estos filtros.<br />Prueba a buscar otra cosa.
+                    </p>
+                    <button
+                        className="btn small secondary"
+                        style={{ marginTop: '20px' }}
+                        onClick={() => { setSearchText(''); setVisibilityFilter('all'); setSelectedGroup(''); }}
+                    >
+                        Limpiar filtros
+                    </button>
                 </div>
             ) : (
-                <div className="grid">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {events.map(ev => (
-                        <div className="card event-card" key={ev.id}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>{ev.name}</h3>
-                                    <span style={{
-                                        fontSize: '11px',
-                                        padding: '4px 8px',
-                                        borderRadius: '12px',
-                                        fontWeight: '600',
-                                        backgroundColor: ev.is_public ? '#dbeafe' : '#fee2e2',
-                                        color: ev.is_public ? '#1e40af' : '#991b1b'
-                                    }}>
-                                        {ev.is_public ? '🌍 Público' : '🔒 Privado'}
+                        <div className="card event-card" key={ev.id} onClick={() => setSelectedEventId(ev.id)} style={{ cursor: 'pointer', transition: 'transform 0.2s', padding: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text)', lineHeight: '1.3' }}>{ev.name}</h3>
+                                <span className={`badge ${ev.is_public ? 'public' : 'private'}`}>
+                                    {ev.is_public ? 'Público' : 'Privado'}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', fontSize: '14px' }}>
+                                    <span>📅</span>
+                                    <span style={{ fontWeight: '500' }}>
+                                        {ev.date ? new Date(ev.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' }) : 'Fecha por determinar'}
+                                    </span>
+                                    <span>•</span>
+                                    <span>
+                                        {ev.date ? new Date(ev.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : ''}
                                     </span>
                                 </div>
-                                <p className="muted" style={{ marginBottom: '12px' }}>
-                                    📅 {ev.date ? new Date(ev.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Fecha desconocida'}
-                                </p>
-                                {ev.registration_deadline && (
-                                    <p style={{ marginBottom: '12px', fontSize: '13px', color: '#d97706', fontWeight: 500 }}>
-                                        🗓️ Cierre inscripción: {new Date(ev.registration_deadline).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                )}
+
                                 {ev.location && (
-                                    <p className="muted" style={{ marginBottom: '12px', fontSize: '14px' }}>
-                                        📍 {ev.location}
-                                    </p>
-                                )}
-                                {ev.group_name && (
-                                    <p style={{ marginBottom: '12px', fontSize: '14px', color: '#7c3aed', fontWeight: 600 }}>
-                                        📂 {ev.group_name}
-                                    </p>
-                                )}
-                                {ev.description && (
-                                    <p style={{
-                                        marginTop: 0,
-                                        marginBottom: '16px',
-                                        fontSize: '14px',
-                                        lineHeight: '1.5',
-                                        color: '#334155'
-                                    }}>
-                                        {ev.description.substring(0, 120)}
-                                        {ev.description.length > 120 ? '...' : ''}
-                                    </p>
-                                )}
-                                {ev.capacity && (
-                                    <p className="muted" style={{ fontSize: '12px' }}>
-                                        👥 Capacidad: {ev.capacity}
-                                    </p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', fontSize: '14px' }}>
+                                        <span>📍</span>
+                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.location}</span>
+                                    </div>
                                 )}
                             </div>
-                            <div style={{ display: 'flex', gap: 8, marginTop: '12px' }}>
-                                <button className="btn" onClick={() => setSelectedEventId(ev.id)} style={{ flex: 1 }}>
-                                    Ver Detalles
-                                </button>
-                                {isEventAdmin(ev) && (
-                                    <button onClick={() => deleteEvent(ev.id, ev.name)} className="btn" style={{ backgroundColor: '#ef4444', borderColor: '#dc2626', padding: '8px 16px' }}>
-                                        🗑️
-                                    </button>
-                                )}
+
+                            {ev.description && (
+                                <p style={{ fontSize: '14px', color: '#475569', margin: '0 0 16px 0', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {ev.description}
+                                </p>
+                            )}
+
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    {ev.group_name && (
+                                        <span style={{ fontSize: '12px', color: '#7c3aed', background: '#f5f3ff', padding: '4px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                                            {ev.group_name}
+                                        </span>
+                                    )}
+                                </div>
+                                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    Ver info <span>→</span>
+                                </span>
                             </div>
                         </div>
                     ))}

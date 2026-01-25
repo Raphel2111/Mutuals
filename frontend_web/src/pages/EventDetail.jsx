@@ -75,12 +75,9 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                 // Add user as admin to event
                 return axios.post(`events/${eventId}/add_admin/`, { user_id: user.id });
             })
-            .then(() => {
-                // Reload event to get updated admins list
-                return axios.get(`events/${eventId}/`);
-            })
             .then(res => {
-                setEvent(res.data);
+                // Update local event state with new admins list from backend
+                setEvent(prev => ({ ...prev, admins: res.data.admins }));
                 setNewAdminEmail('');
                 setShowAddAdmin(false);
                 alert('Admin agregado exitosamente');
@@ -97,12 +94,9 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
         }
 
         axios.post(`events/${eventId}/remove_admin/`, { user_id: userId })
-            .then(() => {
-                // Reload event to get updated admins list
-                return axios.get(`events/${eventId}/`);
-            })
             .then(res => {
-                setEvent(res.data);
+                // Update local event state with new admins list from backend
+                setEvent(prev => ({ ...prev, admins: res.data.admins }));
                 alert('Admin removido exitosamente');
             })
             .catch(err => {
@@ -257,19 +251,6 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                 )}
 
             </div>
-
-            {event.group && (
-                <div className="card" style={{ marginTop: 20, textAlign: 'center', padding: '30px', backgroundColor: '#fef3c7', border: '1px solid #fbbf24' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎫</div>
-                    <h3 style={{ margin: '0 0 8px 0' }}>¿Quieres asistir a este evento?</h3>
-                    <p style={{ margin: '0 0 16px 0', color: '#92400e', fontSize: '14px' }}>
-                        Este evento pertenece a un grupo. Para solicitar tu QR de entrada, debes acceder al grupo desde la sección "Mis Grupos".
-                    </p>
-                    <div style={{ fontSize: '12px', color: '#78350f', fontStyle: 'italic' }}>
-                        Los códigos QR se gestionan desde el grupo para mejor organización
-                    </div>
-                </div>
-            )}
 
             {/* Embedded MyEventQR for Registration/RSVP */}
             {event && isValidId(eventId) && (

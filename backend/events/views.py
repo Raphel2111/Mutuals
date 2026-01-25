@@ -109,30 +109,56 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='add_admin')
     def add_admin(self, request, pk=None):
         event = self.get_object()
+        
+        # Permission check: Only current admins can add others
+        if not (request.user.is_staff or event.admins.filter(pk=request.user.pk).exists()):
+             return Response({'detail': 'No tienes permiso'}, status=status.HTTP_403_FORBIDDEN)
+
         user_id = request.data.get('user_id')
         if not user_id:
             return Response({'detail': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
         from users.models import User as UserModel
+        from .serializers import UserSerializer
         try:
             u = UserModel.objects.get(pk=user_id)
         except UserModel.DoesNotExist:
             return Response({'detail': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
+            
         event.admins.add(u)
-        return Response({'detail': 'admin added'})
+        
+        # Return updated admins list to frontend
+        return Response({
+            'detail': 'admin added',
+            'admins': UserSerializer(event.admins.all(), many=True).data
+        })
 
     @action(detail=True, methods=['post'], url_path='remove_admin')
     def remove_admin(self, request, pk=None):
         event = self.get_object()
+
+        # Permission check
+        if not (request.user.is_staff or event.admins.filter(pk=request.user.pk).exists()):
+             return Response({'detail': 'No tienes permiso'}, status=status.HTTP_403_FORBIDDEN)
+
         user_id = request.data.get('user_id')
         if not user_id:
             return Response({'detail': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
         from users.models import User as UserModel
+        from .serializers import UserSerializer
         try:
             u = UserModel.objects.get(pk=user_id)
         except UserModel.DoesNotExist:
-            return Response({'detail': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
+             # Even if not found, we consider it removed/success to avoid stuck state
+            return Response({'detail': 'user not found (ignored)'}, status=status.HTTP_200_OK)
+            
         event.admins.remove(u)
-        return Response({'detail': 'admin removed'})
+        
+        return Response({
+            'detail': 'admin removed',
+            'admins': UserSerializer(event.admins.all(), many=True).data
+        })
 
     @action(detail=True, methods=['get'], url_path='participants')
     def participants(self, request, pk=None):

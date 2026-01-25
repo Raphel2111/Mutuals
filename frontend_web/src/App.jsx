@@ -138,13 +138,22 @@ function App() {
             )}
             <nav>
                 <div className="nav-container">
+                    {/* Mobile User Avatar (Left) */}
+                    {authenticated && currentUser && (
+                        <div className="mobile-user-avatar mobile-only" onClick={() => setView('profile')}>
+                            {currentUser.avatar_url ? (
+                                <img src={currentUser.avatar_url} alt={currentUser.username} className="avatar-small" style={{ width: 32, height: 32 }} />
+                            ) : (
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.username)}&background=random&size=32`} alt={currentUser.username} className="avatar-small" style={{ width: 32, height: 32 }} />
+                            )}
+                        </div>
+                    )}
+
                     <div className="nav-header">
                         <div className="brand" onClick={() => setView('events')} style={{ cursor: 'pointer' }}>
                             <BrandLogo />
                             <h1 style={{ margin: 0, fontSize: '1.5em' }}>La Terreta</h1>
                         </div>
-                        {/* Mobile Menu Button Removed in favor of Bottom Nav (hidden via CSS) */}
-                        <div className="mobile-menu-btn" style={{ display: 'none' }}></div>
 
                         {/* Auth buttons for mobile header if needed, but usually in bottom nav profiles or separate */}
                         {!authenticated && (

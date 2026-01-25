@@ -160,6 +160,63 @@ class EventViewSet(viewsets.ModelViewSet):
             'admins': UserSerializer(event.admins.all(), many=True).data
         })
 
+    @action(detail=True, methods=['get'], url_path='export_csv')
+    def export_csv(self, request, pk=None):
+        """Export registrations to CSV (Admin Only)"""
+        import csv
+        from django.http import HttpResponse
+
+        event = self.get_object()
+        
+        # Permission check
+        user = request.user
+        is_admin = (
+            user.is_staff or 
+            event.admins.filter(pk=user.pk).exists() or 
+            (event.group and (event.group.admins.filter(pk=user.pk).exists() or event.group.creators.filter(pk=user.pk).exists()))
+        )
+        if not is_admin:
+            return Response({'detail': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Create response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{event.name}_attendees.csv"'
+        
+        # Fix for Excel (BOM)
+        response.write(u'\ufeff'.encode('utf8'))
+
+        writer = csv.writer(response)
+        writer.writerow(['Nombre', 'Apellido', 'Usuario (App)', 'Email', 'Rol', 'Estado', 'Entrada Usada', 'Hora Escaneo', 'Código Entrada', 'Alias'])
+
+        registrations = Registration.objects.filter(event=event).select_related('user')
+        
+        for reg in registrations:
+            attended_at = reg.attended_at.strftime('%Y-%m-%d %H:%M:%S') if reg.attended_at else 'No escaneado'
+            
+            # Name resolution
+            first_name = reg.attendee_first_name
+            last_name = reg.attendee_last_name
+            username_app = reg.user.username
+            
+            # Type label
+            type_map = {'member': 'Fallero', 'guest': 'Invitado', 'child': 'Niño'}
+            role = type_map.get(reg.attendee_type, reg.attendee_type)
+            
+            writer.writerow([
+                first_name,
+                last_name,
+                username_app,
+                reg.user.email,
+                role,
+                reg.get_status_display(),
+                'SI' if reg.used else 'NO',
+                attended_at,
+                reg.entry_code,
+                reg.alias
+            ])
+
+        return response
+
     @action(detail=True, methods=['get'], url_path='participants')
     def participants(self, request, pk=None):
         """Get all participants (users with registrations) for this event"""

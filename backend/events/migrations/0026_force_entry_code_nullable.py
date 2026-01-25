@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
@@ -7,15 +7,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            # For PostgreSQL
-            sql=[
-                "ALTER TABLE events_registration ALTER COLUMN entry_code DROP NOT NULL;",
-                # Drop constraint if exists (name might vary but usually logic handles it, simply removing uniqueness index if present)
-                "DROP INDEX IF EXISTS events_registration_entry_code_key;",
-                "ALTER TABLE events_registration DROP CONSTRAINT IF EXISTS events_registration_entry_code_key;"
-            ],
-            # Reverse SQL (optional, best effort)
-            reverse_sql=""
+        migrations.AlterField(
+            model_name='registration',
+            name='entry_code',
+            field=models.CharField(blank=True, max_length=100, null=True, unique=True),
         ),
     ]

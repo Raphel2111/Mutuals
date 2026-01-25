@@ -1111,63 +1111,78 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         if not qr_content:
             return Response({'valid': False, 'message': 'No QR content provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Assuming qr_content is the UUID string
+        from django.db import transaction
         try:
-            # Try to match the UUID directly
-            registration = Registration.objects.filter(entry_code=qr_content).first()
+            # 1. First, identify the registration (Read-only check)
+            registration = None
+            
+            # Try UUID direct match
+            reg_qs = Registration.objects.filter(entry_code=qr_content)
+            if reg_qs.exists():
+                registration = reg_qs.first()
+            
+            # If not found, try parsing URL
             if not registration:
-                # If content is a URL, try to extract UUID (rudimentary check)
                 import uuid
                 try:
-                    # Look for uuid pattern
                     parts = qr_content.split('/')
                     possible_id = parts[-1]
-                    uuid.UUID(possible_id) # validates format
-                    registration = Registration.objects.filter(entry_code=possible_id).first()
-                except ValueError:
+                    uuid.UUID(possible_id) # validate format
+                    reg_qs = Registration.objects.filter(entry_code=possible_id)
+                    if reg_qs.exists():
+                        registration = reg_qs.first()
+                except (ValueError, IndexError):
                     pass
 
             if not registration:
                 return Response({'valid': False, 'message': 'Código QR no encontrado en el sistema.'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Check permissions: User must be admin of the event OR admin of the group
-            user = request.user
-            event = registration.event
-            
-            is_event_admin = event.admins.filter(pk=user.pk).exists()
-            # Check if user is admin of the group related to the event
-            is_group_admin = False
-            if event.group:
-                is_group_admin = event.group.admins.filter(pk=user.pk).exists()
-            
-            is_admin = user.is_staff or is_event_admin or is_group_admin
-            
-            if not is_admin:
-                 return Response({'valid': False, 'message': 'No tienes permisos de administrador para este evento.'}, status=status.HTTP_403_FORBIDDEN)
+            # 2. Perform Validation within Atomic Transaction
+            with transaction.atomic():
+                # Re-fetch with lock to prevent race conditions
+                try:
+                    locked_reg = Registration.objects.select_for_update().get(pk=registration.pk)
+                except Registration.DoesNotExist:
+                    return Response({'valid': False, 'message': 'Error de concurrencia: Registro desaparecido.'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Check usage
-            if registration.used:
-                attendee_name = registration.get_attendee_name()
+                # Check permissions
+                user = request.user
+                event = locked_reg.event
+                
+                is_event_admin = event.admins.filter(pk=user.pk).exists()
+                is_group_admin = False
+                if event.group:
+                    is_group_admin = event.group.admins.filter(pk=user.pk).exists()
+                
+                is_admin = user.is_staff or is_event_admin or is_group_admin
+                
+                if not is_admin:
+                     return Response({'valid': False, 'message': 'No tienes permisos de administrador para este evento.'}, status=status.HTTP_403_FORBIDDEN)
+
+                # Check usage
+                if locked_reg.used:
+                    attendee_name = locked_reg.get_attendee_name()
+                    return Response({
+                        'valid': False, 
+                        'message': 'QR YA UTILIZADO anteriormente.',
+                        'attendee': attendee_name,
+                        'event': event.name,
+                        'attended_at': locked_reg.attended_at
+                    })
+
+                # Mark as used
+                locked_reg.used = True
+                locked_reg.attended_at = timezone.now()
+                locked_reg.save()
+                
+                attendee_name = locked_reg.get_attendee_name()
                 return Response({
-                    'valid': False, 
-                    'message': f'QR YA UTILIZADO anteriormente.',
+                    'valid': True, 
+                    'message': 'Entrada Válida. Acceso permitido.', 
                     'attendee': attendee_name,
-                    'event': event.name,
-                    'attended_at': registration.attended_at
+                    'event': event.name
                 })
 
-            # Mark as used
-            registration.used = True
-            registration.attended_at = timezone.now()
-            registration.save()
-            
-            attendee_name = registration.get_attendee_name()
-            return Response({
-                'valid': True, 
-                'message': 'Entrada Válida. Acceso permitido.', 
-                'attendee': attendee_name,
-                'event': event.name
-            })
 
         except Exception as e:
             return Response({'valid': False, 'message': f'Error validando: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -51,7 +51,7 @@ class Registration(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     # entry_code is nullable - only generated for confirmed registrations
-    entry_code = models.UUIDField(default=None, null=True, blank=True)
+    entry_code = models.UUIDField(default=None, null=True, blank=True, unique=True)
     qr_code = models.ImageField(upload_to='qrcodes', blank=True)
     used = models.BooleanField(default=False)
     

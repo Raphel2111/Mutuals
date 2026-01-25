@@ -107,25 +107,7 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
 
     // loadParticipants and removeParticipant functions removed - managed by EventAccessManager
 
-    function exportRegistrations() {
-        if (!confirm('¿Descargar lista de participantes en Excel (CSV)?')) return;
 
-        axios.get(`events/${eventId}/export_csv/`, { responseType: 'blob' })
-            .then(res => {
-                const url = window.URL.createObjectURL(new Blob([res.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `${event.name}_asistentes.csv`);
-
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-            })
-            .catch(err => {
-                console.error('Export error:', err);
-                alert('Error al exportar: ' + (err.response?.status === 403 ? 'No tienes permisos' : 'Error del servidor'));
-            });
-    }
 
     const isValidId = (id) => {
         return id !== null && id !== undefined;
@@ -186,22 +168,13 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                             <strong>👑 Administradores del evento:</strong>
                             {isEventAdmin && (
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button
-                                        className="btn secondary"
-                                        onClick={exportRegistrations}
-                                        style={{ fontSize: '12px', padding: '4px 8px', borderColor: '#16a34a', color: '#15803d', backgroundColor: '#dcfce7' }}
-                                    >
-                                        📊 Excel
-                                    </button>
-                                    <button
-                                        className="btn secondary"
-                                        onClick={() => setShowAddAdmin(!showAddAdmin)}
-                                        style={{ fontSize: '12px', padding: '4px 8px' }}
-                                    >
-                                        {showAddAdmin ? 'Cancelar' : '+ Agregar Admin'}
-                                    </button>
-                                </div>
+                                <button
+                                    className="btn secondary"
+                                    onClick={() => setShowAddAdmin(!showAddAdmin)}
+                                    style={{ fontSize: '12px', padding: '4px 8px' }}
+                                >
+                                    {showAddAdmin ? 'Cancelar' : '+ Agregar Admin'}
+                                </button>
                             )}
                         </div>
 

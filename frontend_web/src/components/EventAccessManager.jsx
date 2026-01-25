@@ -85,12 +85,12 @@ export default function EventAccessManager({ event, currentUser }) {
         if (!confirm('¿Descargar listado de participantes en Excel?')) return;
 
         setLoading(true);
-        axios.get(`events/${event.id}/export_registrations/`, { responseType: 'blob' })
+        axios.get(`events/${event.id}/export_csv/`, { responseType: 'blob' })
             .then((response) => {
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const link = document.createElement('a');
                 link.href = url;
-                link.setAttribute('download', `participantes_${event.id}.csv`);
+                link.setAttribute('download', `${event.name || 'evento'}_asistentes.csv`);
                 document.body.appendChild(link);
                 link.click();
                 link.remove();

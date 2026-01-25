@@ -257,9 +257,11 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
 
                                     <div style={{ background: 'white', padding: '10px', borderRadius: '12px', border: '2px solid #f1f5f9' }}>
                                         <img
-                                            src={reg.qr_url || `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(reg.entry_code)}`}
-                                            alt="QR"
-                                            style={{ width: 140, height: 140, display: 'block' }}
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(reg.entry_code)}&bgcolor=ffffff`}
+                                            alt={`QR Código: ${reg.entry_code}`}
+                                            title="Tu código de entrada único"
+                                            loading="lazy"
+                                            style={{ width: '100%', height: 'auto', maxWidth: 140, display: 'block', margin: '0 auto' }}
                                         />
                                     </div>
 

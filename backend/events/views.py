@@ -567,9 +567,13 @@ class DistributionGroupViewSet(viewsets.ModelViewSet):
         return DistributionGroup.objects.all()
 
     def perform_create(self, serializer):
+        user = getattr(self.request, 'user', None)
+        if not user or not user.is_staff:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Sólo los administradores pueden crear grupos.")
+
         group = serializer.save()
         # Make creator an admin of the group
-        user = getattr(self.request, 'user', None)
         if user and user.is_authenticated:
             group.admins.add(user)
             group.creators.add(user)
@@ -631,6 +635,9 @@ class DistributionGroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='add_admin')
     def add_admin(self, request, pk=None):
+        if not request.user.is_staff:
+            return Response({'detail': 'Solo el Staff puede añadir administradores.'}, status=status.HTTP_403_FORBIDDEN)
+            
         group = self.get_object()
         user_id = request.data.get('user_id')
         if not user_id:
@@ -645,6 +652,9 @@ class DistributionGroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='remove_admin')
     def remove_admin(self, request, pk=None):
+        if not request.user.is_staff:
+            return Response({'detail': 'Solo el Staff puede eliminar administradores.'}, status=status.HTTP_403_FORBIDDEN)
+
         group = self.get_object()
         user_id = request.data.get('user_id')
         if not user_id:

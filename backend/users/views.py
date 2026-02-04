@@ -8,7 +8,10 @@ from django.utils import timezone
 from django.shortcuts import redirect
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, VerificationCode
-from .serializers import UserSerializer, UserRegistrationSerializer, UserUpdateSerializer
+from .serializers import (
+    UserSerializer, UserRegistrationSerializer, UserUpdateSerializer,
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,11 +27,15 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserUpdateSerializer
         if self.action == 'register':
             return UserRegistrationSerializer
+        if self.action == 'password_reset_request':
+            return PasswordResetRequestSerializer
+        if self.action == 'password_reset_confirm':
+            return PasswordResetConfirmSerializer
         return UserSerializer
     
     def get_permissions(self):
         """Override permissions for specific actions"""
-        if self.action in ['register']:
+        if self.action in ['register', 'password_reset_request', 'password_reset_confirm']:
             return [permissions.AllowAny()]
         if self.action in ['retrieve']:  # Permitir obtener un usuario específico sin auth
             return [permissions.AllowAny()]
@@ -283,6 +290,95 @@ EventoApp
                 {'detail': 'Código inválido'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+    @action(detail=False, methods=['post'], url_path='password-reset-request')
+    def password_reset_request(self, request):
+        """Solicita restablecimiento de contraseña"""
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = User.objects.get(email=email)
+            
+            # Crear código
+            code = VerificationCode.objects.create(
+                user=user,
+                verification_type='password_reset'
+            )
+            
+            # Enviar email
+            try:
+                subject = 'Restablecer contraseña - EventoApp'
+                message = f'''
+Hola {user.username},
+
+Has solicitado restablecer tu contraseña. Tu código de verificación es:
+
+{code.code}
+
+Este código expirará en 15 minutos.
+
+Si no solicitaste esto, ignora este mensaje.
+
+Saludos,
+EventoApp
+                '''
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+                return Response({'detail': 'Código de restablecimiento enviado a tu email'})
+            except Exception as e:
+                logger.error(f'Error sending password reset email: {e}')
+                code.delete()
+                return Response(
+                    {'detail': 'Error al enviar el email. Inténtalo de nuevo más tarde.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='password-reset-confirm')
+    def password_reset_confirm(self, request):
+        """Confirma el restablecimiento de contraseña"""
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            code_input = serializer.validated_data['code']
+            password = serializer.validated_data['password']
+            
+            try:
+                user = User.objects.get(email=email)
+                code = VerificationCode.objects.filter(
+                    user=user,
+                    verification_type='password_reset',
+                    code=code_input,
+                    used=False
+                ).latest('created_at')
+                
+                if not code.is_valid():
+                    return Response(
+                        {'detail': 'El código ha expirado. Solicita uno nuevo.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Todo correcto: cambiar contraseña
+                user.set_password(password)
+                user.save()
+                
+                # Marcar código como usado
+                code.used = True
+                code.save()
+                
+                return Response({'detail': 'Contraseña restablecida exitosamente'})
+                
+            except (User.DoesNotExist, VerificationCode.DoesNotExist):
+                return Response(
+                    {'detail': 'Datos inválidos o código incorrecto'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class OAuthCallbackView(APIView):

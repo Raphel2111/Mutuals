@@ -13,6 +13,16 @@ Required environment variables
 - `EMAIL_USE_TLS` (`True` or `False`)
 - `DEFAULT_FROM_EMAIL` (e.g. `no-reply@yourdomain.com`)
 
+### Configuración específica para **Brevo** (antes Sendinblue)
+Para usar Brevo, utiliza estos valores:
+- `EMAIL_BACKEND`: `django.core.mail.backends.smtp.EmailBackend`
+- `EMAIL_HOST`: `smtp-relay.brevo.com`
+- `EMAIL_PORT`: `587`
+- `EMAIL_USE_TLS`: `True`
+- `EMAIL_HOST_USER`: Tu correo de registro en Brevo.
+- `EMAIL_HOST_PASSWORD`: Tu **SMTP Key** (la generas en Brevo -> SMTP & API -> SMTP keys).
+- `DEFAULT_FROM_EMAIL`: El correo que hayas verificado como remitente en Brevo.
+
 Development quickstart (PowerShell)
 1. Copy `.env.example` to `.env` in the `backend` folder and fill values.
 2. Temporarily set env vars in the current PowerShell session:

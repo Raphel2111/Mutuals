@@ -22,6 +22,7 @@ function App() {
     const [currentUser, setCurrentUser] = useState(null);
     const [joinToken, setJoinToken] = useState(null);
     const [showRegister, setShowRegister] = useState(false);
+    const [showLogin, setShowLogin] = useState(false);
     const [emailNotVerifiedAlert, setEmailNotVerifiedAlert] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -181,10 +182,10 @@ function App() {
                                 </div>
                             ) : (
                                 <div className="auth-buttons">
-                                    {!showRegister ? (
-                                        <button className="btn primary" onClick={() => setShowRegister(true)}>Acceder</button>
+                                    {(!showLogin && !showRegister) ? (
+                                        <button className="btn primary" onClick={() => setShowLogin(true)}>Acceder</button>
                                     ) : (
-                                        <button className="btn secondary" onClick={() => setShowRegister(false)}>Login</button>
+                                        <button className="btn secondary" onClick={() => { setShowLogin(false); setShowRegister(false); }}>Cerrar</button>
                                     )}
                                 </div>
                             )}
@@ -206,12 +207,12 @@ function App() {
 
             <div style={{ flex: 1 }} className="pb-safe">
                 {/* Auth Flow: If unauthenticated and not on public views, show Login/Register */}
-                {!authenticated && view !== 'join' && (showRegister || view !== 'events') ? (
+                {!authenticated && view !== 'join' && (showLogin || showRegister || view !== 'events') ? (
                     showRegister ? (
                         <ErrorBoundary>
                             <Register
-                                onRegisterSuccess={() => setShowRegister(false)}
-                                onBackToLogin={() => setShowRegister(false)}
+                                onRegisterSuccess={() => { setShowRegister(false); setShowLogin(false); }}
+                                onBackToLogin={() => { setShowRegister(false); setShowLogin(true); }}
                             />
                         </ErrorBoundary>
                     ) : (
@@ -219,8 +220,9 @@ function App() {
                             onLogin={() => {
                                 setAuthenticated(true);
                                 setShowRegister(false);
+                                setShowLogin(false);
                             }}
-                            onShowRegister={() => setShowRegister(true)}
+                            onShowRegister={() => { setShowLogin(false); setShowRegister(true); }}
                         />
                     )
                 ) : (

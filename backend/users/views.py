@@ -306,7 +306,7 @@ EventoApp
             # Crear código
             code = VerificationCode.objects.create(
                 user=user,
-                verification_type='password_reset'
+                verification_type='reset'
             )
             
             # Enviar email
@@ -362,7 +362,7 @@ EventoApp
                 user = User.objects.get(email=email)
                 code = VerificationCode.objects.filter(
                     user=user,
-                    verification_type='password_reset',
+                    verification_type='reset',
                     code=code_input,
                     used=False
                 ).latest('created_at')

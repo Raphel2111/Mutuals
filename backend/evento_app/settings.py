@@ -238,11 +238,10 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 # CORS & CSRF Configuration
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow overriding CORS_ALLOW_ALL_ORIGINS via env var
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
+# Temporarily allow all origins to bypass CORS blocking while debugging 500 errors
+CORS_ALLOW_ALL_ORIGINS = True
 
 if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
     CSRF_TRUSTED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
 else:
     # Only allow origins defined in env

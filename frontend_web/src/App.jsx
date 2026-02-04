@@ -205,25 +205,30 @@ function App() {
             </nav>
 
             <div style={{ flex: 1 }} className="pb-safe">
-                {!authenticated && view !== 'join' && !showRegister && view !== 'registrations' && view !== 'groups' && view !== 'profile' && (
-                    <Login
-                        onLogin={() => {
-                            setAuthenticated(true);
-                            setShowRegister(false);
-                            setView('events');
-                        }}
-                        onShowRegister={() => setShowRegister(true)}
-                    />
-                )}
-                {!authenticated && showRegister && (
-                    <ErrorBoundary>
-                        <Register
-                            onRegisterSuccess={() => {
+                {/* Auth Flow: If not authenticated, show Login/Register for restricted views or when explicitly asked */}
+                {!authenticated && (showRegister || view === 'registrations' || view === 'groups' || view === 'profile') && view !== 'join' ? (
+                    showRegister ? (
+                        <ErrorBoundary>
+                            <Register
+                                onRegisterSuccess={() => setShowRegister(false)}
+                                onBackToLogin={() => setShowRegister(false)}
+                            />
+                        </ErrorBoundary>
+                    ) : (
+                        <Login
+                            onLogin={() => {
+                                setAuthenticated(true);
                                 setShowRegister(false);
+                                if (view === 'events') setView('events'); // Keep on same view or default to events
                             }}
-                            onBackToLogin={() => setShowRegister(false)}
+                            onShowRegister={() => setShowRegister(true)}
                         />
-                    </ErrorBoundary>
+                    )
+                ) : null}
+
+                {/* Specific view rendering */}
+                {!authenticated && view === 'events' && !showRegister && (
+                    <ErrorBoundary><EventList /></ErrorBoundary>
                 )}
                 {view === 'join' && (
                     <ErrorBoundary>
@@ -245,25 +250,9 @@ function App() {
                 )}
                 {view === 'registrations' && authenticated ? (
                     <ErrorBoundary><RegistrationList /></ErrorBoundary>
-                ) : view === 'registrations' ? (
-                    <div className="container">
-                        <div className="card" style={{ textAlign: 'center' }}>
-                            <h3>Debes iniciar sesión</h3>
-                            <p className="muted">Para ver tus entradas, accede con tu cuenta.</p>
-                            <button className="btn full" onClick={() => { setShowRegister(true); }}>Acceder / Registrarse</button>
-                        </div>
-                    </div>
                 ) : null}
                 {view === 'groups' && authenticated ? (
                     <ErrorBoundary><GroupList /></ErrorBoundary>
-                ) : view === 'groups' ? (
-                    <div className="container">
-                        <div className="card" style={{ textAlign: 'center' }}>
-                            <h3>Debes iniciar sesión</h3>
-                            <p className="muted">Para ver tus grupos, accede con tu cuenta.</p>
-                            <button className="btn full" onClick={() => { setShowRegister(true); }}>Acceder / Registrarse</button>
-                        </div>
-                    </div>
                 ) : null}
                 {view === 'profile' && authenticated && currentUser ? (
                     <ErrorBoundary>
@@ -274,25 +263,6 @@ function App() {
                             onClearAlert={() => setEmailNotVerifiedAlert(false)}
                         />
                     </ErrorBoundary>
-                ) : view === 'profile' ? (
-                    <div className="container">
-                        {!authenticated && !showRegister ? (
-                            <Login
-                                onLogin={() => {
-                                    setAuthenticated(true);
-                                    setShowRegister(false);
-                                    setView('profile');
-                                }}
-                                onShowRegister={() => setShowRegister(true)}
-                            />
-                        ) : (
-                            <div className="card" style={{ textAlign: 'center' }}>
-                                <h2>Acceso restringido</h2>
-                                <p>Debes iniciar sesión para ver tu perfil</p>
-                                <button className="btn" onClick={() => setShowRegister(true)}>Acceder</button>
-                            </div>
-                        )}
-                    </div>
                 ) : null}
 
             </div>

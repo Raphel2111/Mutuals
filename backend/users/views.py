@@ -36,13 +36,19 @@ class UserViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """Override permissions for specific actions"""
-        if self.action in ['register', 'password_reset_request', 'password_reset_confirm']:
+        if self.action in ['register', 'password_reset_request', 'password_reset_confirm', 'ping']:
             return [permissions.AllowAny()]
         if self.action in ['retrieve']:  # Permitir obtener un usuario específico sin auth
             return [permissions.AllowAny()]
         return super().get_permissions()
     
     def get_serializer_context(self):
+        return super().get_serializer_context()
+
+    @action(detail=False, methods=['get'], url_path='ping', permission_classes=[permissions.AllowAny], authentication_classes=[])
+    def ping(self, request):
+        """Endpoint para verificar conectividad y CORS"""
+        return Response({'status': 'ok', 'message': 'Backend is reachable'}, status=status.HTTP_200_OK)
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
@@ -335,11 +341,12 @@ EventoApp
                 )
                 return Response({'detail': 'Código de restablecimiento enviado a tu email'})
             except Exception as e:
-                logger.error(f'Error sending password reset email: {e}')
-                code.delete()
+                import traceback
+                error_trace = traceback.format_exc()
+                logger.error(f"Error in password_reset_request: {error_trace}")
                 # Incluimos el mensaje de error técnico para ayudar al usuario a ver qué falla (SMTP, etc)
                 return Response(
-                    {'detail': f'Error al enviar el email: {str(e)}. Revisa la configuración SMTP.'},
+                    {'detail': f'Error al enviar el email: {str(e)}. Revisa la configuración SMTP. Trace: {error_trace[:200]}'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
         # Handle serializer errors (like invalid email format)

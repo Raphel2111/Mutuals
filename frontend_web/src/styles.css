@@ -767,8 +767,8 @@ label {
 		cursor: pointer;
 	}
 
-	/* Hide Brand Text ("La Terreta") */
-	.brand h1 {
+	/* Hide Brand Text on mobile */
+	.brand span {
 		display: none;
 	}
 

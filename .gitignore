@@ -12,6 +12,7 @@ env/
 *.swp
 *.swo
 *~
+Clave SMTP (No hacer push)
 
 # Archivos de medios y estáticos generados
 media/

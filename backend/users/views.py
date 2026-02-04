@@ -111,7 +111,7 @@ class UserViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     
-    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], url_path='register')
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], authentication_classes=[], url_path='register')
     def register(self, request):
         """Public endpoint for user registration."""
         serializer = UserRegistrationSerializer(data=request.data)
@@ -291,7 +291,7 @@ EventoApp
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-    @action(detail=False, methods=['post'], url_path='password-reset-request')
+    @action(detail=False, methods=['post'], url_path='password-reset-request', permission_classes=[permissions.AllowAny], authentication_classes=[])
     def password_reset_request(self, request):
         """Solicita restablecimiento de contraseña"""
         serializer = self.get_serializer(data=request.data)
@@ -339,7 +339,7 @@ EventoApp
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['post'], url_path='password-reset-confirm')
+    @action(detail=False, methods=['post'], url_path='password-reset-confirm', permission_classes=[permissions.AllowAny], authentication_classes=[])
     def password_reset_confirm(self, request):
         """Confirma el restablecimiento de contraseña"""
         serializer = self.get_serializer(data=request.data)

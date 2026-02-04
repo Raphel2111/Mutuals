@@ -26,6 +26,7 @@ class VerificationCode(models.Model):
         ('password_reset', 'Restablecer Contraseña'),
     )
     
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_codes')
     code = models.CharField(max_length=6)
     verification_type = models.CharField(max_length=20, choices=VERIFICATION_TYPES)
     created_at = models.DateTimeField(auto_now_add=True)

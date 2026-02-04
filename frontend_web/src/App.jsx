@@ -205,8 +205,8 @@ function App() {
             </nav>
 
             <div style={{ flex: 1 }} className="pb-safe">
-                {/* Auth Flow: If not authenticated, show Login/Register for restricted views or when explicitly asked */}
-                {!authenticated && (showRegister || view === 'registrations' || view === 'groups' || view === 'profile') && view !== 'join' ? (
+                {/* Auth Flow: If unauthenticated and not on public views, show Login/Register */}
+                {!authenticated && view !== 'join' && (showRegister || view !== 'events') ? (
                     showRegister ? (
                         <ErrorBoundary>
                             <Register
@@ -219,52 +219,48 @@ function App() {
                             onLogin={() => {
                                 setAuthenticated(true);
                                 setShowRegister(false);
-                                if (view === 'events') setView('events'); // Keep on same view or default to events
                             }}
                             onShowRegister={() => setShowRegister(true)}
                         />
                     )
-                ) : null}
-
-                {/* Specific view rendering */}
-                {!authenticated && view === 'events' && !showRegister && (
-                    <ErrorBoundary><EventList /></ErrorBoundary>
+                ) : (
+                    <>
+                        {view === 'events' && (
+                            <ErrorBoundary><EventList /></ErrorBoundary>
+                        )}
+                        {view === 'join' && (
+                            <ErrorBoundary>
+                                <JoinGroup
+                                    token={joinToken}
+                                    onSuccess={(groupId) => {
+                                        window.location.hash = '';
+                                        setView('groups');
+                                    }}
+                                    onCancel={() => {
+                                        window.location.hash = '';
+                                        setView('events');
+                                    }}
+                                />
+                            </ErrorBoundary>
+                        )}
+                        {view === 'registrations' && authenticated && (
+                            <ErrorBoundary><RegistrationList /></ErrorBoundary>
+                        )}
+                        {view === 'groups' && authenticated && (
+                            <ErrorBoundary><GroupList /></ErrorBoundary>
+                        )}
+                        {view === 'profile' && authenticated && currentUser && (
+                            <ErrorBoundary>
+                                <UserProfile
+                                    userId={currentUser.id}
+                                    onBack={() => setView('events')}
+                                    showVerificationAlert={emailNotVerifiedAlert}
+                                    onClearAlert={() => setEmailNotVerifiedAlert(false)}
+                                />
+                            </ErrorBoundary>
+                        )}
+                    </>
                 )}
-                {view === 'join' && (
-                    <ErrorBoundary>
-                        <JoinGroup
-                            token={joinToken}
-                            onSuccess={(groupId) => {
-                                window.location.hash = '';
-                                setView('groups');
-                            }}
-                            onCancel={() => {
-                                window.location.hash = '';
-                                setView('events');
-                            }}
-                        />
-                    </ErrorBoundary>
-                )}
-                {view === 'events' && (
-                    <ErrorBoundary><EventList /></ErrorBoundary>
-                )}
-                {view === 'registrations' && authenticated ? (
-                    <ErrorBoundary><RegistrationList /></ErrorBoundary>
-                ) : null}
-                {view === 'groups' && authenticated ? (
-                    <ErrorBoundary><GroupList /></ErrorBoundary>
-                ) : null}
-                {view === 'profile' && authenticated && currentUser ? (
-                    <ErrorBoundary>
-                        <UserProfile
-                            userId={currentUser.id}
-                            onBack={() => setView('events')}
-                            showVerificationAlert={emailNotVerifiedAlert}
-                            onClearAlert={() => setEmailNotVerifiedAlert(false)}
-                        />
-                    </ErrorBoundary>
-                ) : null}
-
             </div>
 
             <BottomNavigation

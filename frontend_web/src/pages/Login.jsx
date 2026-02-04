@@ -55,7 +55,9 @@ export default function Login({ onLogin, onShowRegister }) {
             setSuccess('Código enviado. Revisa tu email.');
             setView('reset_confirm');
         } catch (err) {
-            setError(err.response?.data?.detail || err.response?.data?.email?.[0] || 'Error al solicitar el código');
+            console.error('Reset request error:', err.response?.data);
+            const backendError = err.response?.data?.detail || err.response?.data?.email?.[0];
+            setError(backendError || 'Error al solicitar el código (comprueba la consola)');
         } finally {
             setLoading(false);
         }

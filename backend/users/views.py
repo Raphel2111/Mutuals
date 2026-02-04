@@ -297,7 +297,10 @@ EventoApp
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
+            
+            if not user:
+                return Response({'detail': 'No existe ningún usuario con este email'}, status=status.HTTP_404_NOT_FOUND)
             
             # Crear código
             code = VerificationCode.objects.create(
@@ -333,11 +336,17 @@ EventoApp
             except Exception as e:
                 logger.error(f'Error sending password reset email: {e}')
                 code.delete()
+                # Incluimos el mensaje de error técnico para ayudar al usuario a ver qué falla (SMTP, etc)
                 return Response(
-                    {'detail': 'Error al enviar el email. Inténtalo de nuevo más tarde.'},
+                    {'detail': f'Error al enviar el email: {str(e)}. Revisa la configuración SMTP.'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Handle serializer errors (like invalid email format)
+        error_msg = 'Datos inválidos'
+        if serializer.errors:
+            if 'email' in serializer.errors:
+                error_msg = serializer.errors['email'][0]
+        return Response({'detail': error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['post'], url_path='password-reset-confirm', permission_classes=[permissions.AllowAny], authentication_classes=[])
     def password_reset_confirm(self, request):

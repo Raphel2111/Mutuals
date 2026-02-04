@@ -412,7 +412,7 @@ export default function GroupDetail({ groupId, onBack }) {
             <button className="btn secondary" onClick={onBack} style={{ marginBottom: 12 }}>← Volver a grupos</button>
 
             <div className="card">
-                {/* Logo del grupo */}
+                {/* Logo del grupo oculto por ahora
                 <div style={{
                     width: '100%',
                     aspectRatio: '1',
@@ -437,6 +437,7 @@ export default function GroupDetail({ groupId, onBack }) {
                         </div>
                     )}
                 </div>
+                */}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
                     <div style={{ flex: 1 }}>

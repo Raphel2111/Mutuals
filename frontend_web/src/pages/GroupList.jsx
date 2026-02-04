@@ -263,7 +263,7 @@ export default function GroupList() {
                                 cursor: 'pointer',
                                 overflow: 'hidden'
                             }} onClick={() => setSelectedGroupId(g.id)}>
-                                {/* Logo del grupo */}
+                                {/* Logo del grupo oculto por ahora
                                 <div style={{
                                     width: '100%',
                                     aspectRatio: '1',
@@ -288,6 +288,7 @@ export default function GroupList() {
                                         </div>
                                     )}
                                 </div>
+                                */}
 
                                 <div style={{ marginBottom: '16px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>

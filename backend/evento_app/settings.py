@@ -75,8 +75,7 @@ if os.getenv('DATABASE_URL'):
     DATABASES = {
         'default': dj_database_url.config(
             default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,  # 10 minutes persistent connections
-            conn_health_checks=True,
+            conn_max_age=600,
         )
     }
 else:

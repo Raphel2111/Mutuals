@@ -90,7 +90,7 @@ class EventViewSet(viewsets.ModelViewSet):
             'admins', 
             'registration_set', 
             'registration_set__user'
-        ).distinct()
+        )
         
         return queryset
 

@@ -4,6 +4,18 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def cleanup_duplicates(apps, schema_editor):
+    Registration = apps.get_model('events', 'Registration')
+    from django.db.models import Count
+    # Find duplicates where attendee_first_name is empty (personal registrations)
+    duplicates = Registration.objects.filter(attendee_first_name="").values('user', 'event').annotate(count=Count('id')).filter(count__gt=1)
+    for dup in duplicates:
+        # Get all personal registrations for this user/event pair
+        regs = Registration.objects.filter(user_id=dup['user'], event_id=dup['event'], attendee_first_name="").order_by('id')
+        # Keep the first one, delete the rest
+        to_delete_ids = regs.values_list('id', flat=True)[1:]
+        Registration.objects.filter(id__in=to_delete_ids).delete()
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,6 +24,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(cleanup_duplicates),
         migrations.AddConstraint(
             model_name="registration",
             constraint=models.UniqueConstraint(

@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 8000
 
 # Default command (runs migrations then starts gunicorn)
-CMD sh -c "python manage.py migrate --noinput && gunicorn evento_app.wsgi:application --bind 0.0.0.0:8000"
+CMD sh -c "python manage.py migrate --noinput && python manage.py setup_test_admin && gunicorn evento_app.wsgi:application --bind 0.0.0.0:8000"

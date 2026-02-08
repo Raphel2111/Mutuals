@@ -93,7 +93,7 @@ class DistributionGroupSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'logo', 'is_public', 'members', 'events', 'admins', 'creators', 'member_count', 'is_member']
     
     def get_member_count(self, obj):
-        return obj.members.count()
+        return getattr(obj, 'annotated_member_count', obj.members.count())
     
     def get_is_member(self, obj):
         request = self.context.get('request')

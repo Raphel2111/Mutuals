@@ -7,6 +7,7 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
     const [registrations, setRegistrations] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [creating, setCreating] = useState(false);
 
     // Guest Form State
     const [showGuestForm, setShowGuestForm] = useState(false);
@@ -81,6 +82,7 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             return;
         }
 
+        setCreating(true);
         axios.post('registrations/', payload)
             .then(res => {
                 const msg = status === 'declined' ? 'Has registrado que NO asistirás.' : 'Registro exitoso.';
@@ -92,7 +94,8 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             .catch(err => {
                 console.error(err);
                 alert('Error: ' + (err.response?.data?.detail || err.message));
-            });
+            })
+            .finally(() => setCreating(false));
     }
 
     if (loading) return <div className="container"><p>Cargando...</p></div>;
@@ -142,10 +145,11 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
                                         color: 'white',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'
                                     }}
+                                    disabled={creating}
                                     onClick={() => handleCreateRegistration(false, 'confirmed')}
                                 >
                                     <span style={{ fontSize: '24px' }}>👍</span>
-                                    <span>Sí, Asistiré</span>
+                                    <span>{creating ? 'Procesando...' : 'Sí, Asistiré'}</span>
                                 </button>
                                 <button
                                     className="btn btn-lg secondary"
@@ -153,8 +157,10 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
                                         borderColor: '#ef4444',
                                         color: '#dc2626',
                                         backgroundColor: '#fef2f2',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                                        opacity: creating ? 0.6 : 1
                                     }}
+                                    disabled={creating}
                                     onClick={() => handleCreateRegistration(false, 'declined')}
                                 >
                                     <span style={{ fontSize: '24px' }}>👎</span>

@@ -71,10 +71,12 @@ WSGI_APPLICATION = 'evento_app.wsgi.application'
 
 # Database configuration - use PostgreSQL in production, SQLite in development
 if os.getenv('DATABASE_URL'):
-    # NOTE: In production (Render/Neon), use the pooled connection URL (usually port 5432 or 6543 with -pooler)
+    # NOTE: In production (Render/Neon), use the pooled connection URL (port 5432 or 6543)
+    # The pooler URL provided by the user ends with -pooler.eu-west-2.aws.neon.tech
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL')
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
         )
     }
 else:

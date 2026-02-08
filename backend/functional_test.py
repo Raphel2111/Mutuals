@@ -3,7 +3,7 @@ import time
 import random
 import string
 
-BACKEND_URL = "https://eventy-backend.onrender.com/api"
+BACKEND_URL = "https://eventy-backend.onrender.com"
 
 def generate_random_string(length=8):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
@@ -11,14 +11,26 @@ def generate_random_string(length=8):
 def run_functional_test():
     print("Starting Functional End-to-End API Test...")
     
+    # 0. Ping
+    ping_url = f"{BACKEND_URL}/api/users/ping/"
+    print(f"Pinging: {ping_url}")
+    try:
+        ping_res = requests.get(ping_url, timeout=10)
+        print(f"Ping Status: {ping_res.status_code}")
+        print(f"Ping Response: {ping_res.text[:100]}")
+    except Exception as e:
+        print(f"Ping failed: {e}")
+    
     # 1. Login with Pre-created Admin
     username = "functional_tester_admin"
     password = "password123"
     
-    print(f"Logging in as admin: {username}")
-    login_res = requests.post(f"{BACKEND_URL}/token/", json={"username": username, "password": password})
+    login_url = f"{BACKEND_URL}/api/token/"
+    print(f"Logging in to: {login_url} as admin: {username}")
+    login_res = requests.post(login_url, json={"username": username, "password": password}, timeout=20)
+    
     if login_res.status_code != 200:
-        print(f"Login failed: {login_res.text}")
+        print(f"Login failed (Status {login_res.status_code}): {login_res.text[:500]}")
         return
     token = login_res.json()['access']
     headers = {"Authorization": f"Bearer {token}"}

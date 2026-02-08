@@ -25,9 +25,9 @@ router.register(r'transactions', TransactionViewSet, basename='transaction')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', lambda request: redirect('tickets/')),
-    path('api/', include(router.urls)),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/', include(router.urls)),
     path('auth/', include('social_django.urls', namespace='social')),
     path('auth/callback/', OAuthCallbackView.as_view(), name='oauth_callback'),
     path('tickets/', include('events.urls')),

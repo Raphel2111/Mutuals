@@ -85,13 +85,6 @@ class EventViewSet(viewsets.ModelViewSet):
         order_by = self.request.query_params.get('order_by', '-date')
         queryset = queryset.order_by(order_by)
         
-        # Optimize: prefetch related objects to avoid N+1 queries
-        queryset = queryset.select_related('group').prefetch_related(
-            'admins', 
-            'registration_set', 
-            'registration_set__user'
-        )
-        
         return queryset
 
     def perform_create(self, serializer):
@@ -567,19 +560,7 @@ class DistributionGroupViewSet(viewsets.ModelViewSet):
         return DistributionGroupSerializer
 
     def get_queryset(self):
-        """
-        Optimize queryset with annotate and prefetch_related to avoid N+1 queries
-        when serializing member_count and relations.
-        """
-        from django.db.models import Count
-        return DistributionGroup.objects.annotate(
-            annotated_member_count=Count('members', distinct=True)
-        ).prefetch_related(
-            'members',
-            'admins',
-            'creators',
-            'events'
-        )
+        return DistributionGroup.objects.all()
 
     def perform_create(self, serializer):
         user = getattr(self.request, 'user', None)
@@ -1066,8 +1047,6 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(user_id=user_param)
 
         # Optimize: select related to avoid N+1 queries
-        queryset = queryset.select_related('user', 'event')
-
         return queryset
 
     def create(self, request, *args, **kwargs):

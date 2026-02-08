@@ -74,8 +74,7 @@ if os.getenv('DATABASE_URL'):
     # NOTE: In production (Render/Neon), use the pooled connection URL (usually port 5432 or 6543 with -pooler)
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
+            default=os.getenv('DATABASE_URL')
         )
     }
 else:

@@ -10,6 +10,5 @@ sentry-sdk
 django-cors-headers
 gunicorn
 whitenoise
-dj-database-url
+dj-database-url==2.1.0
 social-auth-app-django
-# Trigger redeploy

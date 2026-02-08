@@ -113,54 +113,52 @@ export default function GroupForm({ groupId, onSaved }) {
                 />
             </div>
 
-            {/* Logo del grupo oculto por ahora
             <div>
                 <label className="group-form-label">
                     🖼️ Logo del Grupo
                 </label>
                 <div style={{
-                    marginBottom:'12px',
-                    display:'flex',
-                    justifyContent:'center',
-                    alignItems:'center',
-                    width:'100%',
-                    aspectRatio:'1',
-                    background:'linear-gradient(135deg, #f0f9ff 0%, #f1f5f9 100%)',
-                    borderRadius:'10px',
-                    overflow:'hidden',
-                    border:'2px dashed #cbd5e1'
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    width: '100%',
+                    aspectRatio: '1',
+                    background: 'linear-gradient(135deg, #f0f9ff 0%, #f1f5f9 100%)',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    border: '2px dashed #cbd5e1'
                 }}>
                     {logoPreview ? (
-                        <img 
-                            src={logoPreview} 
-                            alt="logo preview" 
-                            style={{width:'100%', height:'100%', objectFit:'cover'}}
+                        <img
+                            src={logoPreview}
+                            alt="logo preview"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                     ) : (
-                        <div style={{textAlign:'center', color:'#94a3b8'}}>
-                            <div style={{fontSize:'40px', marginBottom:'8px'}}>📸</div>
-                            <div style={{fontSize:'12px'}}>Sin imagen</div>
+                        <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                            <div style={{ fontSize: '40px', marginBottom: '8px' }}>📸</div>
+                            <div style={{ fontSize: '12px' }}>Sin imagen</div>
                         </div>
                     )}
                 </div>
-                <input 
-                    type="file" 
+                <input
+                    type="file"
                     accept="image/*"
                     onChange={handleLogoChange}
                     style={{
-                        width:'100%',
-                        padding:'10px',
-                        border:'2px solid #e2e8f0',
-                        borderRadius:'10px',
-                        cursor:'pointer',
-                        fontSize:'14px'
+                        width: '100%',
+                        padding: '10px',
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        fontSize: '14px'
                     }}
                 />
                 <small className="group-form-help">
                     Sube una imagen para el logo del grupo (PNG, JPG, etc.)
                 </small>
             </div>
-            */}
 
             <div>
                 <label className="group-form-label">

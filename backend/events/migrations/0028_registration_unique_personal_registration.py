@@ -17,6 +17,7 @@ def cleanup_duplicates(apps, schema_editor):
         Registration.objects.filter(id__in=to_delete_ids).delete()
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         ("events", "0027_alter_registration_entry_code"),

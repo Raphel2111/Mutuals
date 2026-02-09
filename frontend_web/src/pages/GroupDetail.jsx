@@ -40,6 +40,7 @@ export default function GroupDetail({ groupId, onBack }) {
     const [showAccessRequests, setShowAccessRequests] = useState(false);
     const [showAccessMessageForm, setShowAccessMessageForm] = useState(false);
     const [accessMessage, setAccessMessage] = useState('');
+    const [editingEvent, setEditingEvent] = useState(null);
 
     useEffect(() => {
         fetchCurrentUser().then(u => setCurrentUser(u));
@@ -309,6 +310,61 @@ export default function GroupDetail({ groupId, onBack }) {
             });
     }
 
+    function deleteEvent(eventId) {
+        if (!window.confirm('¿Estás seguro de que deseas borrar este evento? Esta acción no se puede deshacer.')) return;
+        axios.delete(`events/${eventId}/`)
+            .then(() => {
+                alert('Evento borrado exitosamente');
+                loadGroup();
+            })
+            .catch(err => alert('Error al borrar: ' + (err.response?.data?.detail || err.message)));
+    }
+
+    function updateEvent(e) {
+        e.preventDefault();
+        const payload = {
+            name: newEventName,
+            date: newEventDate,
+            location: newEventLocation,
+            capacity: newEventCapacity,
+            max_qr_codes: newEventMaxQR || null,
+            description: newEventDescription,
+            is_public: newEventIsPublic,
+            registration_deadline: newEventDeadline || null
+        };
+
+        axios.patch(`events/${editingEvent}/`, payload)
+            .then(() => {
+                setEditingEvent(null);
+                setNewEventName('');
+                setNewEventDate('');
+                setNewEventLocation('');
+                setNewEventCapacity('');
+                setNewEventMaxQR('');
+                setNewEventDescription('');
+                setNewEventIsPublic(true);
+                setNewEventDeadline('');
+                loadGroup();
+                alert('Evento actualizado correctamente');
+            })
+            .catch(err => alert('Error al actualizar: ' + (err.response?.data?.detail || JSON.stringify(err.response?.data))));
+    }
+
+    function startEditing(ev) {
+        setEditingEvent(ev.id);
+        setNewEventName(ev.name);
+        setNewEventDate(ev.date ? ev.date.substring(0, 16) : '');
+        setNewEventLocation(ev.location);
+        setNewEventCapacity(ev.capacity);
+        setNewEventMaxQR(ev.max_qr_codes || '');
+        setNewEventDescription(ev.description);
+        setNewEventIsPublic(ev.is_public);
+        setNewEventDeadline(ev.registration_deadline ? ev.registration_deadline.substring(0, 16) : '');
+        setShowCreateEvent(false);
+        // Scroll to form?
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function createEvent(e) {
         e.preventDefault();
         if (!newEventName || !newEventDate) {
@@ -570,9 +626,9 @@ export default function GroupDetail({ groupId, onBack }) {
                     )}
                 </div>
 
-                {showCreateEvent && (
-                    <form className="card" onSubmit={createEvent} style={{ marginBottom: 12 }}>
-                        <h4 style={{ marginTop: 0 }}>Nuevo Evento</h4>
+                {(showCreateEvent || editingEvent) && (
+                    <form className="card" onSubmit={editingEvent ? updateEvent : createEvent} style={{ marginBottom: 12, border: editingEvent ? '2px solid var(--primary)' : '1px solid var(--muted)' }}>
+                        <h4 style={{ marginTop: 0 }}>{editingEvent ? '✏️ Editar Evento' : '✨ Nuevo Evento'}</h4>
                         <div className="form-row">
                             <label>Nombre *</label>
                             <input type="text" value={newEventName} onChange={e => setNewEventName(e.target.value)} required />
@@ -608,15 +664,17 @@ export default function GroupDetail({ groupId, onBack }) {
                                 />
                                 <span>Evento público (visible para todos)</span>
                             </label>
-                            <small style={{ color: '#64748b', marginTop: '4px', display: 'block' }}>
-                                {newEventIsPublic ? 'El evento será visible para todos los usuarios' : 'El evento solo será visible para miembros del grupo'}
-                            </small>
                         </div>
                         <div className="form-row">
                             <label>Descripción</label>
                             <textarea value={newEventDescription} onChange={e => setNewEventDescription(e.target.value)} rows={3}></textarea>
                         </div>
-                        <button type="submit" className="btn">Crear</button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button type="submit" className="btn" style={{ flex: 1 }}>{editingEvent ? 'Guardar Cambios' : 'Crear'}</button>
+                            {editingEvent && (
+                                <button type="button" className="btn secondary" style={{ flex: 1 }} onClick={() => setEditingEvent(null)}>Cancelar Edición</button>
+                            )}
+                        </div>
                     </form>
                 )}
 
@@ -632,10 +690,14 @@ export default function GroupDetail({ groupId, onBack }) {
                                 <div style={{ marginTop: 8 }}>
                                     <strong>Límite QR:</strong> {ev.max_qr_codes || 'Ilimitado'}
                                 </div>
-                                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                                    <button className="btn secondary" onClick={() => setViewingQREventId(ev.id)}>Ver mi QR</button>
+                                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                                    <button className="btn secondary" style={{ flex: 1 }} onClick={() => setViewingQREventId(ev.id)}>Ver mi QR</button>
                                     {isAdmin && (
-                                        <button className="btn" onClick={() => setScanningQREventId(ev.id)}>Escanear QR</button>
+                                        <>
+                                            <button className="btn" style={{ flex: 1 }} onClick={() => setScanningQREventId(ev.id)}>Escanear QR</button>
+                                            <button className="btn secondary" style={{ flex: 1, borderColor: 'var(--primary)', color: 'var(--primary)' }} onClick={() => startEditing(ev)}>✏️ Editar</button>
+                                            <button className="btn secondary" style={{ flex: 1, borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => deleteEvent(ev.id)}>🗑️ Borrar</button>
+                                        </>
                                     )}
                                 </div>
                             </div>

@@ -1034,8 +1034,13 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         queryset = Registration.objects.all()
 
         if not user.is_staff:
-            # Base visibility: own registrations OR registrations for events I admin
-            queryset = queryset.filter(dj_models.Q(user=user) | dj_models.Q(event__admins=user)).distinct()
+            # Base visibility: own registrations OR registrations for events I admin (direct or through group)
+            queryset = queryset.filter(
+                dj_models.Q(user=user) | 
+                dj_models.Q(event__admins=user) |
+                dj_models.Q(event__group__admins=user) |
+                dj_models.Q(event__group__creators=user)
+            ).distinct()
 
         # Apply specific filters if provided
         event_id = self.request.query_params.get('event')

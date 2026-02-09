@@ -936,15 +936,17 @@ export default function GroupDetail({ groupId, onBack }) {
                                                 }}
                                             />
                                             <div style={{ fontWeight: 600 }}>{member.username}</div>
-                                            <div className="muted" style={{ fontSize: '0.85em', marginTop: 4 }}>
-                                                {member.email}
-                                            </div>
+                                            {(isAdmin || member.id === currentUser?.id) && (
+                                                <div className="muted" style={{ fontSize: '0.85em', marginTop: 4 }}>
+                                                    {member.email}
+                                                </div>
+                                            )}
                                             {isAdminMember && (
                                                 <div style={{ marginTop: 4, fontSize: '0.8em', color: 'var(--primary)', fontWeight: 600 }}>
                                                     ⭐ Admin
                                                 </div>
                                             )}
-                                            {member.bio && (
+                                            {(isAdmin || member.id === currentUser?.id) && member.bio && (
                                                 <div className="muted" style={{ fontSize: '0.8em', marginTop: 8, fontStyle: 'italic' }}>
                                                     {member.bio.length > 60 ? member.bio.substring(0, 60) + '...' : member.bio}
                                                 </div>

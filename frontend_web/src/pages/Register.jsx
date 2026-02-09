@@ -61,7 +61,17 @@ export default function Register({ onRegisterSuccess, onBackToLogin }) {
         }
 
         // Submit to backend (relative to API base)
-        axios.post('users/register/', formData)
+        const trimmedData = {
+            username: formData.username.trim(),
+            email: formData.email.trim(),
+            first_name: formData.first_name.trim(),
+            last_name: formData.last_name.trim(),
+            phone: formData.phone.trim(),
+            password: formData.password,
+            password_confirm: formData.password_confirm
+        };
+
+        axios.post('users/register/', trimmedData)
             .then(res => {
                 setSuccess(true);
                 setTimeout(() => {

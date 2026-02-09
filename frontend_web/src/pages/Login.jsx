@@ -19,9 +19,15 @@ export default function Login({ onLogin, onShowRegister }) {
     const submit = async (e) => {
         e.preventDefault();
         setError(null);
+        const trimmedUsername = username.trim();
+        const trimmedPassword = password.trim();
+
         try {
-            console.log('Intentando login con:', { username, password });
-            const res = await axios.post(backendBase + '/api/token/', { username, password });
+            console.log('Intentando login con:', { username: trimmedUsername });
+            const res = await axios.post(backendBase + '/api/token/', {
+                username: trimmedUsername,
+                password: trimmedPassword
+            });
             console.log('Login exitoso, tokens recibidos');
             localStorage.setItem('access_token', res.data.access);
             localStorage.setItem('refresh_token', res.data.refresh);
@@ -163,8 +169,14 @@ export default function Login({ onLogin, onShowRegister }) {
 
 
             <div className="form-row">
-                <label>Usuario</label>
-                <input type="text" value={username} onChange={e => setUsername(e.target.value)} required />
+                <label>Usuario o Email</label>
+                <input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    required
+                    placeholder="Tu usuario o email"
+                />
             </div>
             <div className="form-row">
                 <label>Contraseña</label>

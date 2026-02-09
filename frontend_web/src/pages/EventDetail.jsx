@@ -162,6 +162,32 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
             <button className="btn secondary" onClick={onBack} style={{ marginBottom: 12 }}>← Volver a eventos</button>
 
             <div className="card">
+                {isEventAdmin && (
+                    <div style={{
+                        display: 'flex',
+                        gap: 12,
+                        padding: '12px 16px',
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 12,
+                        marginBottom: 16,
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                    }}>
+                        <span style={{ fontWeight: 600, fontSize: '14px', color: '#475569' }}>🛠️ Gestión de Administrador:</span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            {!isEditing ? (
+                                <>
+                                    <button className="btn" onClick={startEditing} style={{ padding: '8px 16px', fontSize: '13px' }}>✏️ Editar Evento</button>
+                                    <button className="btn secondary" onClick={handleDeleteEvent} style={{ padding: '8px 16px', fontSize: '13px', borderColor: '#ef4444', color: '#ef4444' }}>🗑️ Borrar</button>
+                                </>
+                            ) : (
+                                <button className="btn secondary" onClick={() => setIsEditing(false)} style={{ padding: '8px 16px', fontSize: '13px' }}>Cancelar Edición</button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                     <div style={{ flex: 1 }}>
                         <h2 style={{ marginTop: 0 }}>{event.name}</h2>
@@ -181,12 +207,6 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                             >
                                 👥 Ver Grupo
                             </button>
-                        )}
-                        {isEventAdmin && !isEditing && (
-                            <>
-                                <button className="btn secondary" onClick={startEditing} style={{ fontSize: '14px', padding: '8px 12px' }}>✏️ Editar</button>
-                                <button className="btn secondary" onClick={handleDeleteEvent} style={{ fontSize: '14px', padding: '8px 12px', borderColor: 'var(--danger)', color: 'var(--danger)' }}>🗑️ Borrar</button>
-                            </>
                         )}
                     </div>
                 </div>

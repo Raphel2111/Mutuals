@@ -690,14 +690,24 @@ export default function GroupDetail({ groupId, onBack }) {
                                 <div style={{ marginTop: 8 }}>
                                     <strong>Límite QR:</strong> {ev.max_qr_codes || 'Ilimitado'}
                                 </div>
-                                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                                    <button className="btn secondary" style={{ flex: 1 }} onClick={() => setViewingQREventId(ev.id)}>Ver mi QR</button>
+                                <div style={{ marginTop: 12 }}>
+                                    <button className="btn secondary full" style={{ marginBottom: 8 }} onClick={() => setViewingQREventId(ev.id)}>Ver mi QR</button>
                                     {ev.is_admin && (
-                                        <>
-                                            <button className="btn" style={{ flex: 1 }} onClick={() => setScanningQREventId(ev.id)}>Escanear QR</button>
-                                            <button className="btn secondary" style={{ flex: 1, borderColor: 'var(--primary)', color: 'var(--primary)' }} onClick={() => startEditing(ev)}>✏️ Editar</button>
-                                            <button className="btn secondary" style={{ flex: 1, borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => deleteEvent(ev.id)}>🗑️ Borrar</button>
-                                        </>
+                                        <div style={{
+                                            padding: '12px',
+                                            backgroundColor: 'var(--primary-light)',
+                                            borderRadius: 12,
+                                            border: '1px solid #e2e8f0'
+                                        }}>
+                                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', marginBottom: 8, textAlign: 'center' }}>⚙️ PANEL ADMIN</div>
+                                            <div style={{ display: 'flex', gap: 6, flexDirection: 'column' }}>
+                                                <button className="btn" style={{ padding: '8px', fontSize: '12px' }} onClick={() => setScanningQREventId(ev.id)}>Escanear QR</button>
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    <button className="btn secondary" style={{ flex: 1, padding: '8px', fontSize: '12px', borderColor: 'var(--primary)', color: 'var(--primary)' }} onClick={() => startEditing(ev)}>✏️ Editar</button>
+                                                    <button className="btn secondary" style={{ flex: 1, padding: '8px', fontSize: '12px', borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => deleteEvent(ev.id)}>🗑️ Borrar</button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>

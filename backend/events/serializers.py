@@ -43,6 +43,7 @@ class EventSerializer(serializers.ModelSerializer):
         user = request.user
         return (
             user.is_staff or 
+            user.role == 'admin' or
             obj.admins.filter(pk=user.pk).exists() or 
             (obj.group and (obj.group.admins.filter(pk=user.pk).exists() or obj.group.creators.filter(pk=user.pk).exists()))
         )

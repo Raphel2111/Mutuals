@@ -190,9 +190,9 @@ class EventViewSet(viewsets.ModelViewSet):
         for reg in registrations:
             attended_at = reg.attended_at.strftime('%Y-%m-%d %H:%M:%S') if reg.attended_at else 'No escaneado'
             
-            # Name resolution
-            first_name = reg.attendee_first_name
-            last_name = reg.attendee_last_name
+            # Name resolution: Registration fields first, then User profile
+            first_name = reg.attendee_first_name or reg.user.first_name
+            last_name = reg.attendee_last_name or reg.user.last_name
             username_app = reg.user.username
             
             # Type label

@@ -61,7 +61,7 @@ export default function GroupDetail({ groupId, onBack }) {
     useEffect(() => {
         if (group && currentUser) {
             const adminIds = group.admins || [];
-            setIsAdmin(adminIds.includes(currentUser.id) || currentUser.role === 'admin');
+            setIsAdmin(adminIds.includes(currentUser.id) || currentUser.role === 'admin' || currentUser.is_staff);
 
             const memberIds = group.members || [];
             setIsMember(memberIds.includes(currentUser.id));
@@ -692,7 +692,7 @@ export default function GroupDetail({ groupId, onBack }) {
                                 </div>
                                 <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                                     <button className="btn secondary" style={{ flex: 1 }} onClick={() => setViewingQREventId(ev.id)}>Ver mi QR</button>
-                                    {isAdmin && (
+                                    {ev.is_admin && (
                                         <>
                                             <button className="btn" style={{ flex: 1 }} onClick={() => setScanningQREventId(ev.id)}>Escanear QR</button>
                                             <button className="btn secondary" style={{ flex: 1, borderColor: 'var(--primary)', color: 'var(--primary)' }} onClick={() => startEditing(ev)}>✏️ Editar</button>

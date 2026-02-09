@@ -12,6 +12,47 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
     const [newAdminEmail, setNewAdminEmail] = useState('');
     const [showAddAdmin, setShowAddAdmin] = useState(false);
     const [isEventAdmin, setIsEventAdmin] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({});
+
+    function startEditing() {
+        setEditForm({
+            name: event.name,
+            date: event.date ? event.date.substring(0, 16) : '',
+            location: event.location || '',
+            capacity: event.capacity || '',
+            max_qr_codes: event.max_qr_codes || '',
+            description: event.description || '',
+            is_public: event.is_public,
+            registration_deadline: event.registration_deadline ? event.registration_deadline.substring(0, 16) : ''
+        });
+        setIsEditing(true);
+    }
+
+    function handleUpdateEvent(e) {
+        e.preventDefault();
+        axios.patch(`events/${eventId}/`, {
+            ...editForm,
+            max_qr_codes: editForm.max_qr_codes || null,
+            registration_deadline: editForm.registration_deadline || null
+        })
+            .then(res => {
+                setEvent(res.data);
+                setIsEditing(false);
+                alert('Evento actualizado correctamente');
+            })
+            .catch(err => alert('Error al actualizar: ' + (err.response?.data?.detail || JSON.stringify(err.response?.data))));
+    }
+
+    function handleDeleteEvent() {
+        if (!window.confirm('¿Estás seguro de que quieres borrar este evento? Esta acción no se puede deshacer.')) return;
+        axios.delete(`events/${eventId}/`)
+            .then(() => {
+                alert('Evento borrado exitosamente');
+                onBack(); // Go back to the previous list
+            })
+            .catch(err => alert('Error al borrar: ' + (err.response?.data?.detail || err.message)));
+    }
 
     useEffect(() => {
         fetchCurrentUser().then(u => setCurrentUser(u));
@@ -131,16 +172,73 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                             </div>
                         )}
                     </div>
-                    {event.group && onViewGroup && (
-                        <button
-                            className="btn secondary"
-                            onClick={() => onViewGroup(event.group)}
-                            style={{ fontSize: '14px', padding: '8px 16px' }}
-                        >
-                            👥 Ver Grupo
-                        </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        {event.group && onViewGroup && (
+                            <button
+                                className="btn secondary"
+                                onClick={() => onViewGroup(event.group)}
+                                style={{ fontSize: '14px', padding: '8px 16px' }}
+                            >
+                                👥 Ver Grupo
+                            </button>
+                        )}
+                        {isEventAdmin && !isEditing && (
+                            <>
+                                <button className="btn secondary" onClick={startEditing} style={{ fontSize: '14px', padding: '8px 12px' }}>✏️ Editar</button>
+                                <button className="btn secondary" onClick={handleDeleteEvent} style={{ fontSize: '14px', padding: '8px 12px', borderColor: 'var(--danger)', color: 'var(--danger)' }}>🗑️ Borrar</button>
+                            </>
+                        )}
+                    </div>
                 </div>
+
+                {isEditing && (
+                    <form className="card" onSubmit={handleUpdateEvent} style={{ marginBottom: 20, border: '2px solid var(--primary)', backgroundColor: '#f8fafc' }}>
+                        <h4 style={{ marginTop: 0 }}>✏️ Editando Evento</h4>
+                        <div className="form-row" style={{ marginBottom: 12 }}>
+                            <label style={{ display: 'block', marginBottom: 4 }}>Nombre *</label>
+                            <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required style={{ width: '100%', padding: '8px' }} />
+                        </div>
+                        <div className="form-row" style={{ marginBottom: 12 }}>
+                            <label style={{ display: 'block', marginBottom: 4 }}>Fecha *</label>
+                            <input type="datetime-local" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} required style={{ width: '100%', padding: '8px' }} />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                            <div className="form-row">
+                                <label style={{ display: 'block', marginBottom: 4 }}>Ubicación</label>
+                                <input type="text" value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} style={{ width: '100%', padding: '8px' }} />
+                            </div>
+                            <div className="form-row">
+                                <label style={{ display: 'block', marginBottom: 4 }}>Capacidad</label>
+                                <input type="number" value={editForm.capacity} onChange={e => setEditForm({ ...editForm, capacity: e.target.value })} style={{ width: '100%', padding: '8px' }} />
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                            <div className="form-row">
+                                <label style={{ display: 'block', marginBottom: 4 }}>Límite QR</label>
+                                <input type="number" value={editForm.max_qr_codes} onChange={e => setEditForm({ ...editForm, max_qr_codes: e.target.value })} placeholder="Vacío = Ilimitado" style={{ width: '100%', padding: '8px' }} />
+                            </div>
+                            <div className="form-row">
+                                <label style={{ display: 'block', marginBottom: 4 }}>Límite Inscripción (opcional)</label>
+                                <input type="datetime-local" value={editForm.registration_deadline} onChange={e => setEditForm({ ...editForm, registration_deadline: e.target.value })} style={{ width: '100%', padding: '8px' }} />
+                            </div>
+                        </div>
+                        <div className="form-row" style={{ marginBottom: 12 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                                <input type="checkbox" checked={editForm.is_public} onChange={e => setEditForm({ ...editForm, is_public: e.target.checked })} />
+                                Evento público (visible para todos)
+                            </label>
+                        </div>
+                        <div className="form-row" style={{ marginBottom: 12 }}>
+                            <label style={{ display: 'block', marginBottom: 4 }}>Descripción</label>
+                            <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={3} style={{ width: '100%', padding: '8px' }}></textarea>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button type="submit" className="btn" style={{ flex: 1 }}>Guardar Cambios</button>
+                            <button type="button" className="btn secondary" onClick={() => setIsEditing(false)} style={{ flex: 1 }}>Cancelar</button>
+                        </div>
+                    </form>
+                )}
+
                 {event.group_name && (
                     <div style={{ marginBottom: 12, padding: 8, backgroundColor: '#f0f9ff', borderRadius: 4, border: '1px solid #bae6fd' }}>
                         <strong>📂 Grupo:</strong> {event.group_name}

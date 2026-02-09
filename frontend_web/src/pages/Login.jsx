@@ -169,11 +169,6 @@ export default function Login({ onLogin, onShowRegister }) {
             <div className="form-row">
                 <label>Contraseña</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-                <div style={{ textAlign: 'right', marginTop: 4 }}>
-                    <a href="#" onClick={(e) => { e.preventDefault(); setView('reset_request'); setError(null); setSuccess(null); }} style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>
-                        ¿Olvidaste tu contraseña?
-                    </a>
-                </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className="btn" type="submit" disabled={loading}>

@@ -115,7 +115,7 @@ export default function EventAccessManager({ event, currentUser }) {
                     className={`btn ${activeTab === 'list' ? 'primary' : 'secondary'}`}
                     onClick={() => setActiveTab('list')}
                 >
-                    📋 Todos los QR ({registrations.length})
+                    📋 Todos los QR ({registrations.filter(r => r.status === 'confirmed').length})
                 </button>
                 <button
                     className={`btn ${activeTab === 'attended' ? 'primary' : 'secondary'}`}
@@ -228,7 +228,7 @@ export default function EventAccessManager({ event, currentUser }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {(activeTab === 'list' ? registrations : attendedList).map(reg => {
+                                {(activeTab === 'list' ? registrations.filter(r => r.status === 'confirmed') : attendedList).map(reg => {
                                     // Determine display name
                                     let displayName = reg.attendee_first_name
                                         ? `${reg.attendee_first_name} ${reg.attendee_last_name} (${reg.attendee_type})`
@@ -257,7 +257,7 @@ export default function EventAccessManager({ event, currentUser }) {
                                         </tr>
                                     );
                                 })}
-                                {(activeTab === 'list' ? registrations : attendedList).length === 0 && (
+                                {(activeTab === 'list' ? registrations.filter(r => r.status === 'confirmed') : attendedList).length === 0 && (
                                     <tr>
                                         <td colSpan="5" style={{ padding: 20, textAlign: 'center', color: '#666' }}>No hay registros para mostrar.</td>
                                     </tr>

@@ -82,7 +82,8 @@ class Registration(models.Model):
 
     def save(self, *args, **kwargs):
         # Always ensure entry_code exists to satisfy NOT NULL DB constraint
-        if not self.entry_code:
+        # REFINEMENT: Only generate entry_code for confirmed registrations
+        if self.status == 'confirmed' and not self.entry_code:
             self.entry_code = uuid.uuid4()
 
         # Only generate QR code image if status is confirmed

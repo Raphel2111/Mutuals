@@ -1059,15 +1059,6 @@ export default function GroupDetail({ groupId, onBack }) {
                 )}
             </div>
 
-            {/* Members list - deprecated since we now use invitations */}
-            {isAdmin && (
-                <div style={{ marginTop: 20 }}>
-                    <h3>Miembros del grupo</h3>
-                    <div className="card">
-                        <p className="muted">Gestión de miembros disponible próximamente</p>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

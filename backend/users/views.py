@@ -54,11 +54,11 @@ class UserViewSet(viewsets.ModelViewSet):
         return context
 
     def get_queryset(self):
-        user = self.request.user
-        # Staff can see all users; non-staff can only see themselves
-        if user.is_authenticated and user.is_staff:
-            return User.objects.all()
-        return User.objects.all()
+        queryset = User.objects.all()
+        email = self.request.query_params.get('email')
+        if email:
+            queryset = queryset.filter(email__iexact=email)
+        return queryset
     
     def update(self, request, *args, **kwargs):
         """Only allow users to update their own profile"""

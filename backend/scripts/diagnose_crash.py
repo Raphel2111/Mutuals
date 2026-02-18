@@ -37,6 +37,8 @@ def diagnose_crash():
     try:
         factory = APIRequestFactory()
         request = factory.get('/')
+        # Attach a dummy user or the admin user to the request
+        request.user = User.objects.filter(username__iexact='Admin').first()
         context = {'request': request}
         
         serializer = DistributionGroupSerializer(instance=group, context=context)

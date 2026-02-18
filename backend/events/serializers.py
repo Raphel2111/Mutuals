@@ -114,7 +114,7 @@ class DistributionGroupSerializer(serializers.ModelSerializer):
     
     def get_is_member(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
             return obj.members.filter(id=request.user.id).exists()
         return False
     

@@ -281,7 +281,11 @@ export default function GroupList() {
                                         alt={g.name}
                                         onError={(e) => {
                                             e.target.onerror = null;
-                                            e.target.src = g.default_logo_url;
+                                            if (e.target.src !== g.default_logo_url) {
+                                                e.target.src = g.default_logo_url;
+                                            } else {
+                                                e.target.src = 'https://via.placeholder.com/150?text=' + g.name.charAt(0);
+                                            }
                                         }}
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     />

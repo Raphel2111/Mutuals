@@ -7,8 +7,8 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'phone', 'avatar', 'avatar_url', 'bio', 'email_verified', 'phone_verified', 'is_staff']
-        read_only_fields = ['avatar_url', 'email_verified', 'phone_verified', 'is_staff']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'phone', 'avatar', 'avatar_url', 'default_avatar_url', 'bio', 'email_verified', 'phone_verified', 'is_staff']
+        read_only_fields = ['avatar_url', 'default_avatar_url', 'email_verified', 'phone_verified', 'is_staff']
     
     def get_avatar_url(self, obj):
         if obj.avatar:
@@ -16,6 +16,9 @@ class UserSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
+        return f"https://ui-avatars.com/api/?name={obj.username}&background=random&size=128"
+
+    def get_default_avatar_url(self, obj):
         return f"https://ui-avatars.com/api/?name={obj.username}&background=random&size=128"
 
 

@@ -142,11 +142,16 @@ function App() {
                     {/* Mobile User Avatar (Left) */}
                     {authenticated && currentUser && (
                         <div className="mobile-user-avatar mobile-only" onClick={() => setView('profile')}>
-                            {currentUser.avatar_url ? (
-                                <img src={currentUser.avatar_url} alt={currentUser.username} className="avatar-small" style={{ width: 32, height: 32 }} />
-                            ) : (
-                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.username)}&background=random&size=32`} alt={currentUser.username} className="avatar-small" style={{ width: 32, height: 32 }} />
-                            )}
+                            <img
+                                src={currentUser.avatar_url || currentUser.default_avatar_url}
+                                alt={currentUser.username}
+                                className="avatar-small"
+                                style={{ width: 32, height: 32 }}
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = currentUser.default_avatar_url;
+                                }}
+                            />
                         </div>
                     )}
 
@@ -167,11 +172,15 @@ function App() {
                             {currentUser ? (
                                 <div className="user-profile-widget">
                                     <div className="user-info" onClick={() => setView('profile')}>
-                                        {currentUser.avatar_url ? (
-                                            <img src={currentUser.avatar_url} alt={currentUser.username} className="avatar-small" />
-                                        ) : (
-                                            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.username)}&background=random&size=40`} alt={currentUser.username} className="avatar-small" />
-                                        )}
+                                        <img
+                                            src={currentUser.avatar_url || currentUser.default_avatar_url}
+                                            alt={currentUser.username}
+                                            className="avatar-small"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = currentUser.default_avatar_url;
+                                            }}
+                                        />
                                         <div className="user-details">
                                             <span className="username">{currentUser.username}</span>
                                         </div>

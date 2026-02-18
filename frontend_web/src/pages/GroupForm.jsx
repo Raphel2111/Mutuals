@@ -18,7 +18,7 @@ export default function GroupForm({ groupId, onSaved }) {
     useEffect(() => {
         axios.get('users/for_select/').then(res => {
             const payload = res.data;
-            const arr = Array.isArray(payload) ? payload : (payload.results || payload || []);
+            const arr = payload.results || (Array.isArray(payload) ? payload : []);
             const opts = arr.map(u => ({ value: u.id, label: `${u.username}${u.email ? ' (' + u.email + ')' : ''}` }));
             setAllUsers(opts);
         }).catch(() => { });

@@ -936,8 +936,12 @@ export default function GroupDetail({ groupId, onBack }) {
                                             }}>
                                                 <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                                                     <img
-                                                        src={avatarUrl}
+                                                        src={req.user?.avatar_url || req.user?.default_avatar_url}
                                                         alt={req.user?.username}
+                                                        onError={(e) => {
+                                                            e.target.onerror = null;
+                                                            e.target.src = req.user?.default_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user?.username || 'Usuario')}&background=random&size=80`;
+                                                        }}
                                                         style={{
                                                             width: 60,
                                                             height: 60,
@@ -1018,8 +1022,12 @@ export default function GroupDetail({ groupId, onBack }) {
                                     return (
                                         <div className="card" key={member.id} style={{ textAlign: 'center', padding: 16 }}>
                                             <img
-                                                src={avatarUrl}
+                                                src={member.avatar_url || member.default_avatar_url}
                                                 alt={member.username}
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = member.default_avatar_url;
+                                                }}
                                                 style={{
                                                     width: 80,
                                                     height: 80,

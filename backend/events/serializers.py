@@ -18,6 +18,9 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.avatar.url
         return f"https://ui-avatars.com/api/?name={obj.username}&background=random&size=128"
 
+    def get_default_avatar_url(self, obj):
+        return f"https://ui-avatars.com/api/?name={obj.username}&background=random&size=128"
+
 
 class ForSelectUserSerializer(serializers.ModelSerializer):
     """Minimal serializer for populating selects in the frontend — does not expose emails."""
@@ -93,7 +96,7 @@ class DistributionGroupSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = DistributionGroup
-        fields = ['id', 'name', 'description', 'logo', 'logo_url', 'default_logo_url', 'is_public', 'members', 'events', 'admins', 'creators', 'member_count', 'is_member']
+        fields = ['id', 'name', 'description', 'logo', 'logo_url', 'default_logo_url', 'is_public', 'admins', 'creators', 'member_count', 'is_member']
     
     def get_logo_url(self, obj):
         if obj.logo:

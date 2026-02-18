@@ -153,6 +153,10 @@ export default function UserProfile({ userId, onBack, showVerificationAlert, onC
                         <img
                             src={avatarUrl}
                             alt={user.username}
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = user.default_avatar_url;
+                            }}
                             style={{
                                 width: 150,
                                 height: 150,

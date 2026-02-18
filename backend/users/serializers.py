@@ -4,6 +4,7 @@ from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
+    default_avatar_url = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -16,7 +17,14 @@ class UserSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
+        return self.get_default_logo_url(obj) # Fallback to default logic
+
+    def get_default_avatar_url(self, obj):
         return f"https://ui-avatars.com/api/?name={obj.username}&background=random&size=128"
+    
+    def get_default_logo_url(self, obj):
+        # Helper for compatibility if get_avatar_url calls it
+        return self.get_default_avatar_url(obj)
 
     def get_default_avatar_url(self, obj):
         return f"https://ui-avatars.com/api/?name={obj.username}&background=random&size=128"

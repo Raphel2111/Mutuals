@@ -16,7 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
-        return None
+        return f"https://ui-avatars.com/api/?name={obj.username}&background=random&size=128"
 
 
 class ForSelectUserSerializer(serializers.ModelSerializer):
@@ -86,12 +86,25 @@ from .models import DistributionGroup, Event
 
 
 class DistributionGroupSerializer(serializers.ModelSerializer):
+    logo_url = serializers.SerializerMethodField()
+    default_logo_url = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
     
     class Meta:
         model = DistributionGroup
-        fields = ['id', 'name', 'description', 'logo', 'is_public', 'members', 'events', 'admins', 'creators', 'member_count', 'is_member']
+        fields = ['id', 'name', 'description', 'logo', 'logo_url', 'default_logo_url', 'is_public', 'members', 'events', 'admins', 'creators', 'member_count', 'is_member']
+    
+    def get_logo_url(self, obj):
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return self.get_default_logo_url(obj)
+
+    def get_default_logo_url(self, obj):
+        return f"https://ui-avatars.com/api/?name={obj.name}&background=3b82f6&color=fff&size=256"
     
     def get_member_count(self, obj):
         return getattr(obj, 'annotated_member_count', obj.members.count())

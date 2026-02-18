@@ -18,23 +18,32 @@ export default function EventAccessManager({ event, currentUser }) {
         loadRegistrations();
     }, [event.id]);
 
-    const loadRegistrations = () => {
+    const [nextPage, setNextPage] = useState(null);
+    const [totalCount, setTotalCount] = useState(0);
+
+    const loadRegistrations = (url = null) => {
         setLoading(true);
-        axios.get(`events/${event.id}/participants/`)
+        const targetUrl = url || `registrations/?event=${event.id}`;
+        axios.get(targetUrl)
             .then(res => {
-                // The endpoint returns Users, but we need Registrations to see QRCode, alias, attended_at.
-                // Wait, the 'participants' endpoint returns Users.
-                // We need the raw registrations list for this management view.
-                // Let's use the export_registrations logic but as JSON? 
-                // Or maybe existing 'registrations/?event={id}' endpoint.
-                return axios.get(`registrations/?event=${event.id}`);
-            })
-            .then(res => {
-                const data = Array.isArray(res.data) ? res.data : res.data.results;
-                setRegistrations(data || []);
+                const data = res.data.results || res.data;
+                const next = res.data.next || null;
+                const count = res.data.count || data.length;
+
+                if (url) {
+                    setRegistrations(prev => [...prev, ...data]);
+                } else {
+                    setRegistrations(data || []);
+                }
+                setNextPage(next);
+                setTotalCount(count);
             })
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
+    };
+
+    const loadMore = () => {
+        if (nextPage) loadRegistrations(nextPage);
     };
 
     const handleSearchUser = (e) => {
@@ -115,7 +124,7 @@ export default function EventAccessManager({ event, currentUser }) {
                     className={`btn ${activeTab === 'list' ? 'primary' : 'secondary'}`}
                     onClick={() => setActiveTab('list')}
                 >
-                    📋 Todos los QR ({registrations.filter(r => r.status === 'confirmed').length})
+                    📋 Todos los QR ({totalCount})
                 </button>
                 <button
                     className={`btn ${activeTab === 'attended' ? 'primary' : 'secondary'}`}
@@ -265,6 +274,18 @@ export default function EventAccessManager({ event, currentUser }) {
                             </tbody>
                         </table>
                     </div>
+                    {nextPage && (
+                        <div style={{ textAlign: 'center', marginTop: 15 }}>
+                            <button
+                                className="btn secondary"
+                                onClick={loadMore}
+                                disabled={loading}
+                                style={{ fontSize: '13px' }}
+                            >
+                                {loading ? 'Cargando...' : '👇 Ver más'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

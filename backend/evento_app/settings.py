@@ -104,7 +104,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# If PERSISTENT_STORAGE_PATH is set (e.g. on Render), use it as MEDIA_ROOT
+MEDIA_ROOT = os.getenv('PERSISTENT_STORAGE_PATH', os.path.join(BASE_DIR, 'media'))
 
 # Cache configuration for performance (200+ concurrent users)
 CACHES = {
@@ -195,7 +196,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    'PAGE_SIZE': 30,
     # Throttling for 200+ concurrent users
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',

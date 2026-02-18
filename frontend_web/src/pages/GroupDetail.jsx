@@ -41,6 +41,8 @@ export default function GroupDetail({ groupId, onBack }) {
     const [showAccessMessageForm, setShowAccessMessageForm] = useState(false);
     const [accessMessage, setAccessMessage] = useState('');
     const [editingEvent, setEditingEvent] = useState(null);
+    const [nextMembersPage, setNextMembersPage] = useState(null);
+    const [nextAccessPage, setNextAccessPage] = useState(null);
 
     useEffect(() => {
         fetchCurrentUser().then(u => setCurrentUser(u));
@@ -81,31 +83,38 @@ export default function GroupDetail({ groupId, onBack }) {
                 const items = Array.isArray(payload) ? payload : (payload.results || []);
                 setEvents(items);
 
-                // Load members details
-                const memberIds = groupRes.data.members || [];
-                if (memberIds.length > 0) {
-                    loadMembers(memberIds);
-                } else {
-                    setMembers([]);
-                }
+                // Initial load of members using the new optimized endpoint
+                loadMembers(true);
             })
             .catch(err => console.error('Error loading group details:', err))
             .finally(() => setLoading(false));
     }
 
-    function loadMembers(memberIds) {
-        Promise.all(memberIds.map(id => axios.get(`users/${id}/`)))
-            .then(responses => {
-                setMembers(responses.map(res => res.data));
+    function loadMembers(reset = false) {
+        const url = (reset || !nextMembersPage) ? `groups/${groupId}/members_list/` : nextMembersPage;
 
-                // Also load admin details
-                const adminIds = group?.admins || [];
-                if (adminIds.length > 0) {
-                    Promise.all(adminIds.map(id => axios.get(`users/${id}/`)))
-                        .then(adminResponses => {
-                            setAdmins(adminResponses.map(res => res.data));
-                        })
-                        .catch(err => console.error('Error loading admins:', err));
+        axios.get(url)
+            .then(res => {
+                const data = res.data.results || (Array.isArray(res.data) ? res.data : []);
+                const next = res.data.next || null;
+
+                if (reset) {
+                    setMembers(data);
+                } else {
+                    setMembers(prev => [...prev, ...data]);
+                }
+                setNextMembersPage(next);
+
+                // Also load admin details if not already loaded (simple version)
+                if (reset) {
+                    const adminIds = group?.admins || [];
+                    if (adminIds.length > 0) {
+                        Promise.all(adminIds.map(id => axios.get(`users/${id}/`)))
+                            .then(adminResponses => {
+                                setAdmins(adminResponses.map(res => res.data));
+                            })
+                            .catch(err => console.error('Error loading admins:', err));
+                    }
                 }
             })
             .catch(err => console.error('Error loading members:', err));
@@ -257,11 +266,19 @@ export default function GroupDetail({ groupId, onBack }) {
             });
     }
 
-    function loadAccessRequests() {
-        axios.get(`groups/${groupId}/access_requests/`)
+    function loadAccessRequests(reset = false) {
+        const url = (reset || !nextAccessPage) ? `groups/${groupId}/access_requests/` : nextAccessPage;
+        axios.get(url)
             .then(res => {
-                const requests = Array.isArray(res.data) ? res.data : (res.data.results || []);
-                setAccessRequests(requests);
+                const data = res.data.results || (Array.isArray(res.data) ? res.data : []);
+                const next = res.data.next || null;
+
+                if (reset) {
+                    setAccessRequests(data);
+                } else {
+                    setAccessRequests(prev => [...prev, ...data]);
+                }
+                setNextAccessPage(next);
             })
             .catch(err => console.error('Error loading access requests:', err));
     }
@@ -481,17 +498,15 @@ export default function GroupDetail({ groupId, onBack }) {
                     overflow: 'hidden',
                     border: '2px solid #e2e8f0'
                 }}>
-                    {group.logo ? (
-                        <img
-                            src={group.logo}
-                            alt={group.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                    ) : (
-                        <div style={{ textAlign: 'center', color: '#cbd5e1' }}>
-                            <div style={{ fontSize: '80px' }}>📸</div>
-                        </div>
-                    )}
+                    <img
+                        src={group.logo_url || group.default_logo_url}
+                        alt={group.name}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = group.default_logo_url;
+                        }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
@@ -969,6 +984,13 @@ export default function GroupDetail({ groupId, onBack }) {
                                     })}
                                 </div>
                             )}
+                            {nextAccessPage && (
+                                <div style={{ textAlign: 'center', marginTop: 15 }}>
+                                    <button className="btn secondary" onClick={() => loadAccessRequests()} style={{ fontSize: '13px' }}>
+                                        {loading ? 'Cargando...' : '👇 Ver más solicitudes'}
+                                    </button>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
@@ -977,7 +999,7 @@ export default function GroupDetail({ groupId, onBack }) {
             {/* Members list */}
             <div style={{ marginTop: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <h3 style={{ margin: 0 }}>Miembros del grupo ({members.length})</h3>
+                    <h3 style={{ margin: 0 }}>Miembros del grupo ({group?.member_count || members.length})</h3>
                     <button className="btn secondary" onClick={() => setShowMembers(!showMembers)}>
                         {showMembers ? 'Ocultar' : 'Mostrar'}
                     </button>
@@ -1055,10 +1077,17 @@ export default function GroupDetail({ groupId, onBack }) {
                                 })}
                             </div>
                         )}
+                        {nextMembersPage && (
+                            <div style={{ textAlign: 'center', marginTop: 20 }}>
+                                <button className="btn secondary" onClick={() => loadMembers()} style={{ fontSize: '13px' }}>
+                                    {loading ? 'Cargando...' : '👇 Ver más miembros'}
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
             </div>
 
-        </div>
+        </div >
     );
 }

@@ -88,7 +88,7 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='for_select')
+    @action(detail=False, methods=['get'], url_path='for_select', pagination_class=None)
     def for_select(self, request):
         """Return a minimal list of users for populating selects in the frontend.
 

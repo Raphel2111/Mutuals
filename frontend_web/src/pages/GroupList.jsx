@@ -276,17 +276,15 @@ export default function GroupList() {
                                     overflow: 'hidden',
                                     border: '1px solid #e2e8f0'
                                 }}>
-                                    {g.logo ? (
-                                        <img
-                                            src={g.logo}
-                                            alt={g.name}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    ) : (
-                                        <div style={{ textAlign: 'center', color: '#cbd5e1' }}>
-                                            <div style={{ fontSize: '48px', marginBottom: '8px' }}>📸</div>
-                                        </div>
-                                    )}
+                                    <img
+                                        src={g.logo_url || g.default_logo_url}
+                                        alt={g.name}
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = g.default_logo_url;
+                                        }}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
                                 </div>
 
                                 <div style={{ marginBottom: '16px' }}>

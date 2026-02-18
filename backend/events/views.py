@@ -426,7 +426,13 @@ EventoApp
     def access_requests(self, request, pk=None):
         """Obtener todas las solicitudes de acceso para este evento (solo admins)"""
         event = self.get_object()
-        requests_qs = AccessRequest.objects.filter(event=event).select_related('user', 'reviewed_by')
+        requests_qs = AccessRequest.objects.filter(event=event).select_related('user', 'reviewed_by').order_by('-requested_at')
+        
+        page = self.paginate_queryset(requests_qs)
+        if page is not None:
+            serializer = AccessRequestSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = AccessRequestSerializer(requests_qs, many=True)
         return Response(serializer.data)
     
@@ -903,8 +909,30 @@ class DistributionGroupViewSet(viewsets.ModelViewSet):
         if not (user.is_staff or group.admins.filter(pk=user.pk).exists()):
             return Response({'detail': 'Solo los administradores pueden ver las solicitudes'}, status=status.HTTP_403_FORBIDDEN)
         
-        requests = group.access_requests.all()
+        requests = group.access_requests.all().order_by('-requested_at')
+        
+        page = self.paginate_queryset(requests)
+        if page is not None:
+            serializer = GroupAccessRequestSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
         serializer = GroupAccessRequestSerializer(requests, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='members_list')
+    def members_list(self, request, pk=None):
+        """Listar miembros del grupo con paginación"""
+        group = self.get_object()
+        members = group.members.all().order_by('username')
+        
+        page = self.paginate_queryset(members)
+        if page is not None:
+            from users.serializers import UserSerializer
+            serializer = UserSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+        from users.serializers import UserSerializer
+        serializer = UserSerializer(members, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], url_path='approve_access')
@@ -1025,10 +1053,9 @@ class DistributionGroupViewSet(viewsets.ModelViewSet):
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):
-    queryset = Registration.objects.all()
+    queryset = Registration.objects.all().order_by('-created_at')
     serializer_class = RegistrationSerializer
     permission_classes = [IsEventAdminOrReadOnly]
-    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user

@@ -16,7 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
-        return None
+        return f"https://ui-avatars.com/api/?name={obj.username}&background=random&size=128"
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):

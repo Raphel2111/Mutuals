@@ -13,7 +13,23 @@ from users.models import User
 from events.models import Event, Registration
 
 def restore_registrations():
-    csv_path = 'Cena FM_asistentes (2).csv'
+    # El archivo se copiará a la raíz del contenedor (/app/cena_backup.csv)
+    # o estará en local en backend/cena_backup.csv
+    csv_filename = 'cena_backup.csv'
+    
+    # Check current directory
+    if os.path.exists(csv_filename):
+        csv_path = csv_filename
+    # Check parent directory (if running from scripts/)
+    elif os.path.exists(os.path.join('..', csv_filename)):
+        csv_path = os.path.join('..', csv_filename)
+    # Check default backend location
+    elif os.path.exists(os.path.join('backend', csv_filename)):
+        csv_path = os.path.join('backend', csv_filename)
+    else:
+        # Fallback to absolute path search if needed, or error
+        csv_path = csv_filename # Let the error handler catch it
+    
     print(f"🚀 INICIANDO RESTAURACIÓN DE REGISTROS desde {csv_path} 🚀")
 
     # 1. Buscar Evento 'Cena FM'

@@ -1026,7 +1026,13 @@ export default function GroupDetail({ groupId, onBack }) {
                                                 alt={member.username}
                                                 onError={(e) => {
                                                     e.target.onerror = null;
-                                                    e.target.src = member.default_avatar_url;
+                                                    // Si falla la imagen principal, intentar con el default
+                                                    if (e.target.src !== member.default_avatar_url) {
+                                                        e.target.src = member.default_avatar_url;
+                                                    } else {
+                                                        // Si falla también el default (ui-avatars), poner un placeholder seguro
+                                                        e.target.src = 'https://via.placeholder.com/150?text=?';
+                                                    }
                                                 }}
                                                 style={{
                                                     width: 80,

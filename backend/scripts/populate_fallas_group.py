@@ -43,11 +43,23 @@ def populate():
     # Añadir específicamente al usuario 'Admin' si existe
     admin_user = User.objects.filter(username__iexact='Admin').first()
     if admin_user:
+        admin_user.is_staff = True
+        admin_user.is_superuser = True
+        admin_user.save()
         group.admins.add(admin_user)
         group.members.add(admin_user)
-        print(f"Usuario '{admin_user.username}' añadido como administrador del grupo.")
+        print(f"Usuario '{admin_user.username}' actualizado como Staff y Superuser, y añadido como admin del grupo.")
+
+    # Vincular evento 'Cena FM' si existe
+    from events.models import Event
+    cena_fm = Event.objects.filter(name__icontains="Cena FM").first()
+    if cena_fm:
+        group.events.add(cena_fm)
+        print(f"Evento '{cena_fm.name}' vinculado al grupo.")
+    else:
+        print("No se encontró el evento 'Cena FM'.")
     
-    print(f"Hecho: Se han añadido {user_count} usuarios como miembros.")
+    print(f"Hecho: Se han añadido {user_count} miembros.")
     print(f"Se han añadido {staff_users.count()} usuarios staff como administradores del grupo.")
     print("\n¡Listo! Ya deberías ver el grupo con todos los usuarios en la web.")
 

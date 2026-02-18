@@ -155,7 +155,11 @@ export default function UserProfile({ userId, onBack, showVerificationAlert, onC
                             alt={user.username}
                             onError={(e) => {
                                 e.target.onerror = null;
-                                e.target.src = user.default_avatar_url;
+                                if (e.target.src !== user.default_avatar_url) {
+                                    e.target.src = user.default_avatar_url;
+                                } else {
+                                    e.target.src = 'https://via.placeholder.com/150?text=?';
+                                }
                             }}
                             style={{
                                 width: 150,

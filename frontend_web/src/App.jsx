@@ -149,7 +149,11 @@ function App() {
                                 style={{ width: 32, height: 32 }}
                                 onError={(e) => {
                                     e.target.onerror = null;
-                                    e.target.src = currentUser.default_avatar_url;
+                                    if (e.target.src !== currentUser.default_avatar_url) {
+                                        e.target.src = currentUser.default_avatar_url;
+                                    } else {
+                                        e.target.src = 'https://via.placeholder.com/32?text=?';
+                                    }
                                 }}
                             />
                         </div>
@@ -178,7 +182,11 @@ function App() {
                                             className="avatar-small"
                                             onError={(e) => {
                                                 e.target.onerror = null;
-                                                e.target.src = currentUser.default_avatar_url;
+                                                if (e.target.src !== currentUser.default_avatar_url) {
+                                                    e.target.src = currentUser.default_avatar_url;
+                                                } else {
+                                                    e.target.src = 'https://via.placeholder.com/32?text=?';
+                                                }
                                             }}
                                         />
                                         <div className="user-details">

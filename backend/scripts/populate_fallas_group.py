@@ -40,6 +40,13 @@ def populate():
     staff_users = User.objects.filter(is_staff=True)
     group.admins.add(*staff_users)
     
+    # Añadir específicamente al usuario 'Admin' si existe
+    admin_user = User.objects.filter(username__iexact='Admin').first()
+    if admin_user:
+        group.admins.add(admin_user)
+        group.members.add(admin_user)
+        print(f"Usuario '{admin_user.username}' añadido como administrador del grupo.")
+    
     print(f"Hecho: Se han añadido {user_count} usuarios como miembros.")
     print(f"Se han añadido {staff_users.count()} usuarios staff como administradores del grupo.")
     print("\n¡Listo! Ya deberías ver el grupo con todos los usuarios en la web.")

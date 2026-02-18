@@ -96,7 +96,7 @@ class DistributionGroupSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = DistributionGroup
-        fields = ['id', 'name', 'description', 'logo', 'logo_url', 'default_logo_url', 'is_public', 'admins', 'creators', 'member_count', 'is_member']
+        fields = ['id', 'name', 'description', 'logo', 'logo_url', 'default_logo_url', 'is_public', 'members', 'events', 'admins', 'creators', 'member_count', 'is_member']
     
     def get_logo_url(self, obj):
         if obj.logo:

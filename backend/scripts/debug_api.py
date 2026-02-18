@@ -1,13 +1,14 @@
 import os
 import django
 import sys
-from rest_framework.request import Request
-from rest_framework.test import APIRequestFactory
 
 # Setup Django
 sys.path.append(os.getcwd())
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'evento_app.settings')
 django.setup()
+
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
 from users.models import User
 from events.models import DistributionGroup

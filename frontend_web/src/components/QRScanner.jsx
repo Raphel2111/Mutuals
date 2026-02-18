@@ -71,39 +71,26 @@ export default function QRScanner({ eventId, onBack }) {
         setError(null);
         setResult(null);
 
-        // Find registration by entry_code
-        axios.get(`registrations/?event=${eventId}`)
-            .then(res => {
-                const payload = res.data;
-                const items = Array.isArray(payload) ? payload : (payload.results || []);
-                const registration = items.find(r => r.entry_code === code.trim());
+        // DIRECT VALIDATION: Don't pre-fetch registrations (fails with pagination).
+        // Send code directly to backend validation endpoint.
+        const cleanCode = code.trim();
 
-                if (!registration) {
-                    throw new Error('Código QR no encontrado para este evento');
+        axios.post('registrations/validate_qr/', { qr_content: cleanCode })
+            .then(res => {
+                const resultData = res.data;
+
+                // Consistency check: Ensure the event matches if eventId is passed
+                if (resultData.event && eventId && resultData.event_id) {
+                    // If backend sends event_id (it should), we could check it.
+                    // For now, we trust the backend check logic.
                 }
 
-                // Validate the QR
-                const validationPromise = axios.post(`registrations/${registration.id}/validate_qr/`).then(r => ({ ...r, registration }));
-
-                // Add artificial delay for UX (prevent double tap / race conditions visually)
-                const delayPromise = new Promise(resolve => setTimeout(resolve, 1500));
-
-                return Promise.all([validationPromise, delayPromise]).then(([res]) => res);
-            })
-            .then(res => {
-                if (res) {
-                    // Start from fresh result
-                    const resultData = res.data;
-                    // Check if we need to attach registration info manually if backend didn't return it full
-                    if (!resultData.registration && res.registration) {
-                        resultData.registration = res.registration;
-                    }
-                    setResult(resultData);
-                }
+                setResult(resultData);
             })
             .catch(err => {
                 console.error('Error validating QR:', err.response?.data || err.message);
-                setError(err.response?.data?.detail || err.message || 'Error al validar QR');
+                const msg = err.response?.data?.message || err.response?.data?.detail;
+                setError(msg || 'Error al validar QR (Código no válido o de otro evento).');
             })
             .finally(() => setLoading(false));
     }

@@ -930,10 +930,16 @@ class DistributionGroupViewSet(viewsets.ModelViewSet):
             from users.serializers import UserSerializer
             serializer = UserSerializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
-
+        
+        # Fallback manual pagination if paginate_queryset returns None (shouldn't happen with default settings)
         from users.serializers import UserSerializer
         serializer = UserSerializer(members, many=True, context={'request': request})
-        return Response(serializer.data)
+        return Response({
+            'count': members.count(),
+            'next': None,
+            'previous': None,
+            'results': serializer.data
+        })
 
     @action(detail=True, methods=['post'], url_path='approve_access')
     def approve_group_access(self, request, pk=None):

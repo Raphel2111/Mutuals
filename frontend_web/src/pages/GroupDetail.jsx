@@ -66,7 +66,12 @@ export default function GroupDetail({ groupId, onBack }) {
             setIsAdmin(adminIds.includes(currentUser.id) || currentUser.role === 'admin' || currentUser.is_staff);
 
             const memberIds = group.members || [];
-            setIsMember(memberIds.includes(currentUser.id));
+            // Use server-side flag if available, fallback to list check
+            if (group.is_member !== undefined) {
+                setIsMember(group.is_member);
+            } else {
+                setIsMember(memberIds.includes(currentUser.id));
+            }
         }
     }, [group, currentUser]);
 

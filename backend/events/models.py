@@ -94,6 +94,10 @@ class Registration(models.Model):
         
         super().save(*args, **kwargs)
 
+    class Meta:
+        # Allow multiple registrations for the same user (e.g. for guests)
+        unique_together = [] 
+
 
 class EmailLog(models.Model):
     registration = models.ForeignKey(Registration, on_delete=models.SET_NULL, null=True, blank=True, related_name='email_logs')

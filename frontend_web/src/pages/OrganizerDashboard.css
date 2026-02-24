@@ -1,0 +1,326 @@
+/* ─── Organizer Dashboard ─── */
+.org-dash {
+    padding: 24px 16px 80px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.org-dash-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    margin: 0 0 4px;
+}
+
+.org-dash-event {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0 0 24px;
+}
+
+.org-dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.org-card {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.org-card-full {
+    grid-column: 1 / -1;
+}
+
+.org-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin: 0 0 4px;
+}
+
+.org-card-sub {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0 0 16px;
+}
+
+.org-empty {
+    color: #475569;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 20px 0;
+}
+
+/* ─── NPS Gauge ─── */
+.gauge-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.gauge-ring {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gauge-inner {
+    width: 80px;
+    height: 80px;
+    background: #0f172a;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.gauge-pct {
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #22c55e;
+}
+
+.gauge-label {
+    font-size: 0.65rem;
+    color: #64748b;
+}
+
+.gauge-legend {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 3px;
+}
+
+/* ─── Connections Counter ─── */
+.org-connections-counter {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 8px 0 12px;
+}
+
+.org-counter-num {
+    font-size: 3.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #22c55e, #34d399);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+}
+
+.org-counter-label {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+.org-card-insight {
+    font-size: 0.82rem;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 0;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Photo Moderation Grid ─── */
+.mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.mod-photo {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.mod-photo.hidden {
+    opacity: 0.35;
+    filter: grayscale(60%);
+}
+
+.mod-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.mod-photo-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mod-photo-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: #e2e8f0;
+}
+
+.mod-author {
+    font-weight: 600;
+}
+
+.mod-likes {
+    color: #94a3b8;
+}
+
+.mod-btn {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    width: 100%;
+}
+
+.mod-btn-hide {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.mod-btn-show {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.mod-hidden-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    background: #ef4444;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+/* ─── Skeleton ─── */
+.org-dash-skeleton {
+    height: 280px;
+    border-radius: 18px;
+    background: linear-gradient(90deg, #1e293b 25%, #0f172a 50%, #1e293b 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+    from {
+        background-position: 200% 0;
+    }
+
+    to {
+        background-position: -200% 0;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .org-dash-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ─── Tab bar ─── */
+.org-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    width: fit-content;
+}
+
+.org-tab {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.org-tab.active {
+    background: rgba(217, 70, 239, 0.12);
+    color: #d8b4fe;
+    border: 1px solid rgba(192, 132, 252, 0.25);
+}
+
+.org-tab:hover:not(.active) {
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Stripe Connect button ─── */
+.org-btn-stripe {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #635bff, #0573e8);
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    width: 100%;
+    justify-content: center;
+}
+
+.org-btn-stripe:hover:not(:disabled) {
+    opacity: 0.88;
+}
+
+.org-btn-stripe:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

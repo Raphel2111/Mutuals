@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import EventAccessManager from '../components/EventAccessManager';
 import MyEventQR from './MyEventQR';
+import EventCapsule from './EventCapsule';
+import OrganizerDashboard from './OrganizerDashboard';
+import GuestCheckoutModal from '../components/GuestCheckoutModal';
+import '../components/GuestCheckoutModal.css';
 import { fetchCurrentUser } from '../auth';
-import axios from '../api'; // Keep axios for admin functions
+import axios from '../api';
 
-export default function EventDetail({ eventId, onBack, onViewGroup }) {
+export default function EventDetail({ eventId, onBack, onViewGroup, onJoinLobby }) {
     const [event, setEvent] = useState(null);
     const [registrations, setRegistrations] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
@@ -14,6 +18,7 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
     const [isEventAdmin, setIsEventAdmin] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({});
+    const [showGuestModal, setShowGuestModal] = useState(false);
 
     function startEditing() {
         setEditForm({
@@ -55,24 +60,29 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
     }
 
     useEffect(() => {
-        fetchCurrentUser().then(u => setCurrentUser(u));
+        fetchCurrentUser()
+            .then(u => setCurrentUser(u))
+            .catch(() => setCurrentUser(null));
     }, []);
 
     useEffect(() => {
-        if (!eventId || !currentUser) return;
+        if (!eventId) return; // Allow currentUser to be null for Guest state
         setLoading(true);
 
-        Promise.all([
-            axios.get(`events/${eventId}/`),
-            axios.get(`registrations/?event=${eventId}&user=${currentUser.id}`)
-        ])
+        const requests = [axios.get(`events/${eventId}/`)];
+        if (currentUser) {
+            requests.push(axios.get(`registrations/?event=${eventId}&user=${currentUser.id}`));
+        }
+
+        Promise.all(requests)
             .then(([eventRes, regsRes]) => {
                 setEvent(eventRes.data);
-                const payload = regsRes.data;
-                const items = Array.isArray(payload) ? payload : (payload.results || []);
-                setRegistrations(items);
-
-                // Use the backend-provided 'is_admin' flag which correctly includes Group Admins/Creators
+                if (regsRes) {
+                    const payload = regsRes.data;
+                    const items = Array.isArray(payload) ? payload : (payload.results || []);
+                    setRegistrations(items);
+                }
+                // Use the backend-provided 'is_admin' flag
                 setIsEventAdmin(eventRes.data.is_admin);
             })
             .catch(err => console.error('Error loading event details:', err))
@@ -161,25 +171,25 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
         <div className="container">
             <button className="btn secondary" onClick={onBack} style={{ marginBottom: 12 }}>← Volver a eventos</button>
 
-            <div className="card">
+            <div className="card glassmorphism" style={{ borderTop: '4px solid var(--primary)', padding: '32px' }}>
                 {isEventAdmin && (
                     <div style={{
                         display: 'flex',
                         gap: 12,
-                        padding: '12px 16px',
-                        backgroundColor: '#f8fafc',
-                        border: '1px solid #e2e8f0',
+                        padding: '16px',
+                        background: 'rgba(192, 132, 252, 0.1)',
+                        border: '1px solid rgba(192, 132, 252, 0.2)',
                         borderRadius: 12,
-                        marginBottom: 16,
+                        marginBottom: 24,
                         alignItems: 'center',
                         justifyContent: 'space-between'
                     }}>
-                        <span style={{ fontWeight: 600, fontSize: '14px', color: '#475569' }}>🛠️ Gestión de Administrador:</span>
+                        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--primary)' }}>🛠️ Gestión de Administrador:</span>
                         <div style={{ display: 'flex', gap: 8 }}>
                             {!isEditing ? (
                                 <>
-                                    <button className="btn" onClick={startEditing} style={{ padding: '8px 16px', fontSize: '13px' }}>✏️ Editar Evento</button>
-                                    <button className="btn secondary" onClick={handleDeleteEvent} style={{ padding: '8px 16px', fontSize: '13px', borderColor: '#ef4444', color: '#ef4444' }}>🗑️ Borrar</button>
+                                    <button className="btn primary" onClick={startEditing} style={{ padding: '8px 16px', fontSize: '13px' }}>✏️ Editar Evento</button>
+                                    <button className="btn secondary" onClick={handleDeleteEvent} style={{ padding: '8px 16px', fontSize: '13px', borderColor: 'var(--danger)', color: 'var(--danger)' }}>🗑️ Borrar</button>
                                 </>
                             ) : (
                                 <button className="btn secondary" onClick={() => setIsEditing(false)} style={{ padding: '8px 16px', fontSize: '13px' }}>Cancelar Edición</button>
@@ -188,13 +198,13 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                     </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
                     <div style={{ flex: 1 }}>
-                        <h2 style={{ marginTop: 0 }}>{event.name}</h2>
-                        <div className="muted">{event.date ? new Date(event.date).toLocaleString() : 'Fecha desconocida'}</div>
+                        <h2 style={{ marginTop: 0, fontSize: '32px', fontWeight: '900', letterSpacing: '-1px' }}>{event.name}</h2>
+                        <div style={{ color: 'var(--muted)', fontSize: '16px', fontWeight: '500' }}>{event.date ? new Date(event.date).toLocaleString([], { weekday: 'short', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Fecha desconocida'}</div>
                         {event.registration_deadline && (
-                            <div style={{ marginTop: 4, color: '#ea580c', fontWeight: 600, fontSize: '0.9em' }}>
-                                ⏳ Cierre inscripción: {new Date(event.registration_deadline).toLocaleString()}
+                            <div style={{ marginTop: 8, color: 'var(--warning)', fontWeight: 600, fontSize: '0.9em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                ⏳ <span>Cierre inscripción: {new Date(event.registration_deadline).toLocaleString()}</span>
                             </div>
                         )}
                     </div>
@@ -203,16 +213,54 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                             <button
                                 className="btn secondary"
                                 onClick={() => onViewGroup(event.group)}
-                                style={{ fontSize: '14px', padding: '8px 16px' }}
+                                style={{ fontSize: '14px', padding: '8px 16px', border: '1px solid rgba(255,255,255,0.1)' }}
                             >
                                 👥 Ver Grupo
+                            </button>
+                        )}
+                        {registrations.length > 0 && onJoinLobby && (
+                            <button
+                                className="btn btn-shimmer"
+                                onClick={() => onJoinLobby({ id: event.id, name: event.name })}
+                                style={{
+                                    fontSize: '14px',
+                                    padding: '8px 16px',
+                                    background: 'var(--accent-gradient)',
+                                    color: 'white',
+                                    border: 'none',
+                                    boxShadow: 'var(--shadow-glow)'
+                                }}
+                            >
+                                🏛️ Entrar al Social Lobby
+                            </button>
+                        )}
+                        {!currentUser && (
+                            <button
+                                className="btn btn-shimmer"
+                                onClick={() => setShowGuestModal(true)}
+                                style={{
+                                    fontSize: '14px',
+                                    padding: '8px 16px',
+                                    background: 'var(--accent-gradient)',
+                                    color: 'white',
+                                    border: 'none',
+                                    boxShadow: 'var(--shadow-glow)'
+                                }}
+                            >
+                                🎟️ Compra Instantánea
                             </button>
                         )}
                     </div>
                 </div>
 
+                <GuestCheckoutModal
+                    isOpen={showGuestModal}
+                    onClose={() => setShowGuestModal(false)}
+                    eventId={eventId}
+                />
+
                 {isEditing && (
-                    <form className="card" onSubmit={handleUpdateEvent} style={{ marginBottom: 20, border: '2px solid var(--primary)', backgroundColor: '#f8fafc' }}>
+                    <form className="card" onSubmit={handleUpdateEvent} style={{ marginBottom: 24, border: '1px solid var(--primary)', backgroundColor: 'var(--surface)' }}>
                         <h4 style={{ marginTop: 0 }}>✏️ Editando Evento</h4>
                         <div className="form-row" style={{ marginBottom: 12 }}>
                             <label style={{ display: 'block', marginBottom: 4 }}>Nombre *</label>
@@ -260,31 +308,40 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                 )}
 
                 {event.group_name && (
-                    <div style={{ marginBottom: 12, padding: 8, backgroundColor: '#f0f9ff', borderRadius: 4, border: '1px solid #bae6fd' }}>
-                        <strong>📂 Grupo:</strong> {event.group_name}
+                    <div style={{ marginBottom: 16, padding: '12px', background: 'rgba(192, 132, 252, 0.05)', borderRadius: 8, border: '1px solid rgba(192, 132, 252, 0.2)' }}>
+                        <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>📂 Grupo:</span> {event.group_name}
                     </div>
                 )}
-                {event.description && <p>{event.description}</p>}
-                <div style={{ marginTop: 10 }}>
-                    <strong>Ubicación:</strong> {event.location || 'No especificada'}
-                </div>
-                <div>
-                    <strong>Capacidad:</strong> {event.capacity || 'Ilimitada'}
-                </div>
-                <div>
-                    <strong>Visibilidad:</strong> {event.is_public ? '🌍 Público' : '🔒 Privado (solo miembros del grupo)'}
-                </div>
-                {event.registration_deadline && (
-                    <div style={{ color: new Date() > new Date(event.registration_deadline) ? '#dc2626' : '#d97706', fontWeight: 600 }}>
-                        <strong>⏳ Cierre inscripción:</strong> {new Date(event.registration_deadline).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {event.description && <p style={{ lineHeight: 1.6, color: 'var(--text)', marginBottom: 24 }}>{event.description}</p>}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: 24 }}>
+                    <div style={{ background: 'var(--surface-light)', padding: 16, borderRadius: 12 }}>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Ubicación</div>
+                        <div style={{ fontWeight: 600 }}>{event.location || 'No especificada'}</div>
                     </div>
-                )}
+                    <div style={{ background: 'var(--surface-light)', padding: 16, borderRadius: 12 }}>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Capacidad</div>
+                        <div style={{ fontWeight: 600 }}>{event.capacity || 'Ilimitada'}</div>
+                    </div>
+                    <div style={{ background: 'var(--surface-light)', padding: 16, borderRadius: 12 }}>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Visibilidad</div>
+                        <div style={{ fontWeight: 600 }}>{event.is_public ? '🌍 Público' : '🔒 Privado'}</div>
+                    </div>
+                    {event.registration_deadline && (
+                        <div style={{ background: 'rgba(249, 115, 22, 0.1)', padding: 16, borderRadius: 12, border: '1px solid rgba(249, 115, 22, 0.3)' }}>
+                            <div style={{ fontSize: 12, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Cierre Inscripción</div>
+                            <div style={{ fontWeight: 600, color: new Date() > new Date(event.registration_deadline) ? 'var(--danger)' : 'var(--text)' }}>
+                                {new Date(event.registration_deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Mostrar admins del evento */}
                 {event.admins && event.admins.length > 0 && (
-                    <div style={{ marginTop: 16, padding: 12, backgroundColor: '#fef3c7', borderRadius: 6, border: '1px solid #fbbf24' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            <strong>👑 Administradores del evento:</strong>
+                    <div style={{ marginTop: 24, padding: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <strong style={{ display: 'flex', alignItems: 'center', gap: 8 }}>👑 Administradores del evento</strong>
                             {isEventAdmin && (
                                 <button
                                     className="btn secondary"
@@ -351,13 +408,48 @@ export default function EventDetail({ eventId, onBack, onViewGroup }) {
                     <EventAccessManager event={event} currentUser={currentUser} />
                 )}
 
+                <div style={{ flex: 1 }} />
+
+                {/* ─ Mutual Memories (EventCapsule FOMO integration) ─ */}
+                {event && (() => {
+                    const eventDate = event.date ? new Date(event.date) : null;
+                    const unlockTime = eventDate ? new Date(eventDate.getTime() + 2 * 60 * 60 * 1000) : null;
+                    const now = new Date();
+                    const isUnlocked = unlockTime && now >= unlockTime;
+                    const isPast = eventDate && now >= eventDate;
+
+                    // Pre-event teaser
+                    if (!isPast) {
+                        return (
+                            <div style={{
+                                margin: '24px 0', padding: '20px 24px',
+                                background: 'rgba(217,70,239,0.06)',
+                                border: '1px dashed rgba(217,70,239,0.25)',
+                                borderRadius: 18, textAlign: 'center'
+                            }}>
+                                <p style={{ fontSize: '2rem', margin: '0 0 8px' }}>📸</p>
+                                <p style={{ color: '#d946ef', fontWeight: 700, fontSize: '1rem', margin: '0 0 4px' }}>
+                                    Mutual Memories — El muro de recuerdos
+                                </p>
+                                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
+                                    Se abre automáticamente 2 horas después del evento. ¡Prepara tu cámara!
+                                </p>
+                            </div>
+                        );
+                    }
+
+                    // Post-event: preview or full gallery
+                    return <EventCapsule event={event} />;
+                })()}
+
+                {/* ─ Organizer Dashboard (admins only) ─ */}
+                {isEventAdmin && event && (
+                    <div style={{ marginTop: 32 }}>
+                        <OrganizerDashboard event={event} />
+                    </div>
+                )}
+
             </div>
-
-            {/* Embedded MyEventQR for Registration/RSVP */}
-            {event && isValidId(eventId) && (
-                <MyEventQR eventId={eventId} embedded={true} isMember={true} onBack={() => { }} />
-            )}
-
-        </div >
+        </div>
     );
 }

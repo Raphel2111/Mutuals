@@ -1,0 +1,218 @@
+/* Overlay */
+.cmm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    animation: cmm-fade 0.18s ease;
+}
+
+@keyframes cmm-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Modal card */
+.cmm-modal {
+    position: relative;
+    width: min(440px, 96vw);
+    background: rgba(13, 15, 28, 0.95);
+    border: 1px solid rgba(192, 132, 252, 0.2);
+    border-radius: 22px;
+    padding: 28px 24px 24px;
+    box-shadow: 0 0 60px rgba(192, 132, 252, 0.12);
+    animation: cmm-slide 0.24s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+@keyframes cmm-slide {
+    from {
+        transform: translateY(32px) scale(0.96);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.cmm-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.cmm-close:hover {
+    color: #e2e8f0;
+}
+
+/* Header */
+.cmm-header {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.cmm-club-img {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid rgba(192, 132, 252, 0.2);
+}
+
+.cmm-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #e2e8f0;
+    margin: 0 0 4px;
+}
+
+.cmm-sub {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Benefits */
+.cmm-benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cmm-benefits li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.cmm-check {
+    color: #22c55e;
+    font-weight: 800;
+}
+
+/* Plan selector */
+.cmm-plans {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.cmm-plan {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 10px;
+    border: 2px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
+    transition: all 0.12s;
+    color: #94a3b8;
+}
+
+.cmm-plan.active {
+    border-color: #d946ef;
+    background: rgba(217, 70, 239, 0.08);
+    color: #e2e8f0;
+}
+
+.cmm-plan-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cmm-plan-price {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #d8b4fe;
+}
+
+.cmm-plan-price small {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.cmm-badge-save {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #22c55e;
+    color: white;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 10px;
+}
+
+/* Note */
+.cmm-note {
+    font-size: 0.73rem;
+    color: #475569;
+    text-align: center;
+    margin: 0 0 14px;
+}
+
+/* CTA */
+.cmm-cta {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #d946ef, #9333ea);
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.cmm-cta:hover:not(:disabled) {
+    opacity: 0.88;
+}
+
+.cmm-cta:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cmm-error {
+    color: #f87171;
+    font-size: 0.82rem;
+    margin: 10px 0 0;
+    text-align: center;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .cmm-plans {
+        grid-template-columns: 1fr;
+    }
+}

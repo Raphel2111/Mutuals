@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
-from .models import User
+from .models import User, InterestTag
 
 
 @admin.register(User)
@@ -11,7 +11,7 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('username', 'email', 'phone')
     
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('Información Adicional', {'fields': ('role', 'phone', 'avatar', 'bio')}),
+        ('Información Adicional', {'fields': ('role', 'phone', 'avatar', 'bio', 'interests')}),
     )
     
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
@@ -23,3 +23,10 @@ class UserAdmin(BaseUserAdmin):
             return format_html('<img src="{}" width="50" height="50" style="border-radius: 50%;" />', obj.avatar.url)
         return '-'
     avatar_preview.short_description = 'Avatar'
+
+@admin.register(InterestTag)
+class InterestTagAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'category')
+    list_filter = ('category',)
+    search_fields = ('name',)
+

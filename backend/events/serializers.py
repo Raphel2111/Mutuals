@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Event, Registration, DistributionGroup, AccessRequest, GroupAccessRequest, Wallet, Transaction
+from .models import Event, Registration, DistributionGroup, AccessRequest, GroupAccessRequest, Wallet, Transaction, Club, ClubMembership, ClubPost
 from users.models import User
 from rest_framework import exceptions
 
@@ -32,12 +32,13 @@ class EventSerializer(serializers.ModelSerializer):
     admins = UserSerializer(many=True, read_only=True)
     group = serializers.PrimaryKeyRelatedField(queryset=DistributionGroup.objects.all(), allow_null=True, required=False)
     group_name = serializers.CharField(source='group.name', read_only=True, allow_null=True)
+    club = serializers.PrimaryKeyRelatedField(queryset=Club.objects.all(), allow_null=True, required=False)
 
     is_admin = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
-        fields = ['id','name','description','date','location','capacity','max_qr_codes','admins','group','group_name','requires_approval','is_public','price','registration_deadline','is_admin']
+        fields = ['id','name','description','date','location','capacity','max_qr_codes','admins','group','group_name','club','requires_approval','is_public','price','registration_deadline','is_admin']
 
     def get_is_admin(self, obj):
         request = self.context.get('request')
@@ -97,7 +98,75 @@ class DistributionGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = DistributionGroup
         fields = ['id', 'name', 'description', 'logo', 'logo_url', 'default_logo_url', 'is_public', 'members', 'events', 'admins', 'creators', 'member_count', 'is_member']
-    
+
+class ClubSerializer(serializers.ModelSerializer):
+    members_count       = serializers.SerializerMethodField()
+    is_member           = serializers.SerializerMethodField()
+    my_badge            = serializers.SerializerMethodField()
+    my_membership_status = serializers.SerializerMethodField()
+    image_url           = serializers.SerializerMethodField()
+    is_admin            = serializers.SerializerMethodField()
+    is_paid             = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Club
+        fields = [
+            'id', 'name', 'slug', 'description', 'image', 'image_url', 'is_private',
+            'members_count', 'is_member', 'my_badge', 'my_membership_status', 'is_admin',
+            'monthly_price', 'annual_price', 'membership_benefits',
+            'stripe_account_status', 'is_paid',
+        ]
+
+    def get_members_count(self, obj):
+        return obj.memberships.filter(status='approved').count()
+
+    def get_is_member(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.memberships.filter(user=request.user, status='approved').exists()
+
+    def get_my_badge(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        membership = obj.memberships.filter(user=request.user, status='approved').first()
+        return membership.badge if membership else None
+
+    def get_my_membership_status(self, obj):
+        """Returns the current user's membership status: 'approved'|'pending'|'rejected'|None."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        membership = obj.memberships.filter(user=request.user).first()
+        return membership.status if membership else None
+
+    def get_is_admin(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.admins.filter(pk=request.user.pk).exists()
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+    def get_is_paid(self, obj):
+        return float(obj.monthly_price or 0) > 0 or float(obj.annual_price or 0) > 0
+
+class ClubMembershipSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    club_name = serializers.CharField(source='club.name', read_only=True)
+    badge_display = serializers.CharField(source='get_badge_display', read_only=True)
+
+    class Meta:
+        model = ClubMembership
+        fields = ['id', 'user', 'club', 'club_name', 'status', 'badge', 'badge_display', 'events_attended', 'message', 'requested_at', 'joined_at']
+        read_only_fields = ['status', 'badge', 'events_attended', 'joined_at']
     def get_logo_url(self, obj):
         if obj.logo:
             request = self.context.get('request')
@@ -242,3 +311,67 @@ class TransactionSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'balance_after']
 
 
+# ─── Networking CRM ──────────────────────────────────────────────────────────
+
+from .models import Connection, EventPhoto, EventRating
+
+class ConnectionSerializer(serializers.ModelSerializer):
+    from_user = UserSerializer(read_only=True)
+    to_user = UserSerializer(read_only=True)
+    to_user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='to_user', write_only=True
+    )
+    event_name = serializers.CharField(source='event.name', read_only=True, allow_null=True)
+
+    class Meta:
+        model = Connection
+        fields = [
+            'id', 'from_user', 'to_user', 'to_user_id', 'event', 'event_name',
+            'status', 'confirmed_by_from', 'confirmed_by_to', 'created_at'
+        ]
+        read_only_fields = ['from_user', 'status', 'confirmed_by_from', 'confirmed_by_to', 'created_at']
+
+
+# ─── Mutual Memories ─────────────────────────────────────────────────────────
+
+class EventPhotoSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    image_url = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    fire_likes_count = serializers.SerializerMethodField()
+    i_liked = serializers.SerializerMethodField()
+    i_fire_liked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EventPhoto
+        fields = [
+            'id', 'event', 'user', 'image', 'image_url', 'caption',
+            'likes_count', 'fire_likes_count', 'i_liked', 'i_fire_liked', 'created_at'
+        ]
+        read_only_fields = ['user', 'created_at', 'likes_count', 'fire_likes_count', 'i_liked', 'i_fire_liked']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return None
+
+    def get_likes_count(self, obj): return obj.likes.count()
+    def get_fire_likes_count(self, obj): return obj.fire_likes.count()
+
+    def get_i_liked(self, obj):
+        request = self.context.get('request')
+        return request and request.user.is_authenticated and obj.likes.filter(pk=request.user.pk).exists()
+
+    def get_i_fire_liked(self, obj):
+        request = self.context.get('request')
+        return request and request.user.is_authenticated and obj.fire_likes.filter(pk=request.user.pk).exists()
+
+
+# ─── Post-Event Survey ───────────────────────────────────────────────────────
+
+class EventRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventRating
+        fields = ['id', 'user', 'event', 'rating', 'created_at']
+        read_only_fields = ['user', 'created_at']

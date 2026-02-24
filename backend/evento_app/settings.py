@@ -23,6 +23,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 INSTALLED_APPS = [
+    'daphne',  # Must be first for ASGI support
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -31,9 +32,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'channels',
     'social_django',
     'users',
     'events',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -68,6 +71,24 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'evento_app.wsgi.application'
+ASGI_APPLICATION = 'evento_app.asgi.application'
+
+# ─── Django Channels — Layer Configuration ────────────────────────────────────
+_REDIS_URL = os.getenv('REDIS_URL', '')
+if _REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {'hosts': [_REDIS_URL]},
+        }
+    }
+else:
+    # Development fallback — works without Redis (single-process only)
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }
 
 # Database configuration - use PostgreSQL in production, SQLite in development
 if os.getenv('DATABASE_URL'):
@@ -107,17 +128,25 @@ MEDIA_URL = '/media/'
 # If PERSISTENT_STORAGE_PATH is set (e.g. on Render), use it as MEDIA_ROOT
 MEDIA_ROOT = os.getenv('PERSISTENT_STORAGE_PATH', os.path.join(BASE_DIR, 'media'))
 
-# Cache configuration for performance (200+ concurrent users)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'evento-app-cache',
-        'TIMEOUT': 300,  # 5 minutes default
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000
+# ─── Cache — Redis in production, LocMem in development ─────────────────────
+if _REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': _REDIS_URL,
+            'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+            'TIMEOUT': 300,
         }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'evento-app-cache',
+            'TIMEOUT': 300,
+            'OPTIONS': {'MAX_ENTRIES': 1000}
+        }
+    }
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -243,34 +272,40 @@ SOCIAL_AUTH_PIPELINE = (
 
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
-# CORS & CSRF Configuration
+# ─── CORS & CSRF ─────────────────────────────────────────────────────────────
 CORS_ALLOW_CREDENTIALS = True
 
-# Temporarily allow all origins to bypass CORS blocking while debugging 500 errors
-CORS_ALLOW_ALL_ORIGINS = True
-
 if DEBUG:
+    # Development: allow all origins for local testing
+    CORS_ALLOW_ALL_ORIGINS = True
     CSRF_TRUSTED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
 else:
-    # Only allow origins defined in env
-    CORS_ALLOWED_ORIGINS = [url.strip() for url in os.getenv('CORS_ALLOWED_ORIGINS', FRONTEND_URL).split(',')]
-    
-    # Adicionar específicamente el dominio de vercel si no está
-    if 'https://terreta.vercel.app' not in CORS_ALLOWED_ORIGINS:
-        CORS_ALLOWED_ORIGINS.append('https://terreta.vercel.app')
-    
-    # Only trust specific origins for CSRF
+    # Production: strict whitelist from environment
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        url.strip()
+        for url in os.getenv('CORS_ALLOWED_ORIGINS', FRONTEND_URL).split(',')
+        if url.strip()
+    ]
     CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS + [
         'https://*.railway.app',
         'https://*.onrender.com',
-        'https://*.vercel.app'
+        'https://*.vercel.app',
     ]
 
-# Security headers for production
+# ─── Security Headers (production only) ──────────────────────────────────────
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000          # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Stripe Configuration
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_fake')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', 'whsec_fake')
+

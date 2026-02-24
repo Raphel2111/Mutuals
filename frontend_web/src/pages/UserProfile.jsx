@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
 import axios from '../api';
 import { getBackendUrl } from '../api';
 import ProfileSettings from './ProfileSettings';
+import ThemePicker from '../components/ThemePicker';
 
 export default function UserProfile({ userId, onBack, showVerificationAlert, onClearAlert }) {
     const [user, setUser] = useState(null);
@@ -197,13 +197,13 @@ export default function UserProfile({ userId, onBack, showVerificationAlert, onC
 
                         {(!user.first_name || !user.last_name) && !editing && (
                             <div style={{
-                                backgroundColor: '#fee2e2',
-                                color: '#991b1b',
+                                backgroundColor: 'var(--primary-light)',
+                                color: 'var(--primary)',
                                 padding: '10px',
                                 borderRadius: '8px',
                                 marginBottom: '16px',
                                 fontSize: '0.9em',
-                                border: '1px solid #fca5a5'
+                                border: '1px solid var(--primary-light)'
                             }}>
                                 ⚠️ <strong>Acción Requerida:</strong> Por favor completa tu Nombre y Apellidos.
                             </div>
@@ -332,6 +332,13 @@ export default function UserProfile({ userId, onBack, showVerificationAlert, onC
                     </div>
                 </div>
             </div>
+
+            {/* Theme Selection Section */}
+            {!editing && (
+                <div style={{ marginTop: 40, borderTop: '1px solid var(--border-color)', paddingTop: 20 }}>
+                    <ThemePicker />
+                </div>
+            )}
         </div>
     );
 }

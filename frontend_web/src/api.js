@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use environment variable for backend URL
-const BACKEND_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BACKEND_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const API_BASE = BACKEND_BASE + '/api/';
 
 const instance = axios.create({
@@ -85,6 +85,37 @@ export function getBackendUrl(path) {
     return API_BASE + path;
 }
 
+// Magic Link and Guest Checkout flows
+export const sendMagicLink = async (email) => {
+    return instance.post('users/magic-login/', { email });
+};
+
+export const fetchInterestTags = async () => {
+    return instance.get('interest-tags/');
+};
+
+// Club APIs
+export const fetchClubs = async () => {
+    return instance.get('clubs/');
+};
+
+export const joinClub = async (id, message = '') => {
+    return instance.post(`clubs/${id}/join/`, { message });
+};
+
+export const fetchClubMemberships = async () => {
+    return instance.get('club-memberships/');
+};
+
 export { API_BASE as apiBase, BACKEND_BASE as backendBase };
+
+// Social Radar / Icebreaker APIs
+export const fetchMutualMatches = async (eventId) => {
+    return instance.get(`events/${eventId}/mutual_matches/`);
+};
+
+export const updateAvailabilityStatus = async (available) => {
+    return instance.patch('users/me/', { availability_status: available });
+};
 
 export default instance;

@@ -403,7 +403,6 @@ export default function GroupDetail({ groupId, onBack }) {
             description: newEventDescription,
             group: groupId,
             is_public: newEventIsPublic,
-            is_public: newEventIsPublic,
             price: 0.00,
             registration_deadline: newEventDeadline || null
         };

@@ -1,0 +1,118 @@
+/* Post-Event Survey Card */
+.survey-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(217, 70, 239, 0.2);
+    border-radius: 20px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    backdrop-filter: blur(12px);
+}
+
+.survey-eyebrow {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #d946ef;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+}
+
+.survey-question {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 18px;
+}
+
+.survey-event-name {
+    background: linear-gradient(90deg, #d946ef, #818cf8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.survey-options {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.survey-emoji-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 18px;
+    border-radius: 16px;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+}
+
+.survey-emoji-btn:hover,
+.survey-emoji-btn.selected {
+    border-color: rgba(217, 70, 239, 0.5);
+    background: rgba(217, 70, 239, 0.1);
+    transform: translateY(-3px);
+}
+
+.survey-emoji {
+    font-size: 2rem;
+}
+
+.survey-label {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+/* Submitted state */
+.survey-card.submitted {
+    text-align: center;
+}
+
+.survey-thanks-emoji {
+    font-size: 3rem;
+    margin-bottom: 8px;
+}
+
+.survey-thanks-text {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin: 0 0 16px;
+}
+
+.btn-share-card {
+    padding: 12px 20px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #d946ef, #818cf8);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    width: 100%;
+}
+
+.btn-share-card:hover {
+    opacity: 0.88;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -2,18 +2,24 @@ import React, { useState, useEffect } from 'react';
 import BrandLogo from './components/BrandLogo';
 import EventList from './pages/EventList';
 import RegistrationList from './pages/RegistrationList';
+import Wallet from './pages/Wallet';
 import GroupList from './pages/GroupList';
+import ClubList from './pages/ClubList';
+import SocialRadar from './pages/SocialRadar';
 import JoinGroup from './pages/JoinGroup';
 import UserProfile from './pages/UserProfile';
 import ProfileSettings from './pages/ProfileSettings';
-
+import SocialProfile from './pages/SocialProfile';
+import SocialLobby from './pages/SocialLobby';
+import './pages/SocialProfile.css';
+import NotificationCenter from './components/NotificationCenter';
+import './components/NotificationCenter.css';
+import QRFab from './components/QRFab';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { fetchCurrentUser } from './auth';
 import ErrorBoundary from './ErrorBoundary';
-
 import ProfileCompletionModal from './components/ProfileCompletionModal';
-
 import BottomNavigation from './components/BottomNavigation';
 
 function App() {
@@ -25,6 +31,9 @@ function App() {
     const [showLogin, setShowLogin] = useState(false);
     const [emailNotVerifiedAlert, setEmailNotVerifiedAlert] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [socialProfileId, setSocialProfileId] = useState(null);
+    const [lobbyEvent, setLobbyEvent] = useState(null);
+    const [radarFilter, setRadarFilter] = useState(null); // Nuevo: filtro por tag para el radar  // target user for SocialProfile view
 
     // Check if user needs to complete profile
     const needsProfileCompletion = authenticated && currentUser && (!currentUser.first_name || !currentUser.last_name);
@@ -137,87 +146,66 @@ function App() {
                     onComplete={(updatedUser) => setCurrentUser(updatedUser)}
                 />
             )}
-            <nav>
+            <nav className="glassmorphism">
                 <div className="nav-container">
-                    {/* Mobile User Avatar (Left) */}
-                    {authenticated && currentUser && (
-                        <div className="mobile-user-avatar mobile-only" onClick={() => setView('profile')}>
-                            <img
-                                src={currentUser.avatar_url || currentUser.default_avatar_url}
-                                alt={currentUser.username}
-                                className="avatar-small"
-                                style={{ width: 32, height: 32 }}
-                                onError={(e) => {
-                                    e.target.onerror = null;
-                                    if (e.target.src !== currentUser.default_avatar_url) {
-                                        e.target.src = currentUser.default_avatar_url;
-                                    } else {
-                                        e.target.src = 'https://via.placeholder.com/32?text=?';
-                                    }
-                                }}
-                            />
-                        </div>
-                    )}
-
                     <div className="nav-header">
+                        {/* Mobile Avatar / Left Action */}
+                        <div className="mobile-only">
+                            {authenticated && currentUser ? (
+                                <img
+                                    src={currentUser.avatar_url || currentUser.default_avatar_url}
+                                    alt={currentUser.username}
+                                    className="avatar-small"
+                                    onClick={() => setView('profile')}
+                                    onError={(e) => { e.target.src = 'https://via.placeholder.com/32?text=?' }}
+                                />
+                            ) : (
+                                <div style={{ width: 36 }}></div>
+                            )}
+                        </div>
+
+                        {/* Centered Brand */}
                         <div className="brand" onClick={() => setView('events')} style={{ cursor: 'pointer' }}>
                             <BrandLogo />
                         </div>
 
-                        {/* Auth buttons for mobile header if needed, but usually in bottom nav profiles or separate */}
-                        {!authenticated && (
-                            <div className="mobile-auth-btn" style={{ display: 'none' }}>
-                                {/* Placeholder if we want login button in header on mobile */}
-                            </div>
-                        )}
+                        {/* Desktop Links (Center) */}
+                        <div className="nav-links desktop-only">
+                            <button className={`btn nav-item ${view === 'events' ? 'active' : ''}`} onClick={() => setView('events')}>Explorar</button>
+                            {authenticated && (
+                                <>
+                                    <button className={`btn nav-item ${view === 'registrations' ? 'active' : ''}`} onClick={() => setView('registrations')}>Entradas</button>
+                                    <button className={`btn nav-item ${view === 'wallet' ? 'active' : ''}`} onClick={() => setView('wallet')}>Cartera</button>
+                                    <button className={`btn nav-item ${view === 'groups' ? 'active' : ''}`} onClick={() => setView('groups')}>Grupos</button>
+                                    <button className={`btn nav-item ${view === 'clubs' ? 'active' : ''}`} onClick={() => setView('clubs')}>Clubes</button>
+                                    <button className={`btn nav-item ${view === 'radar' ? 'active' : ''}`} onClick={() => setView('radar')}>🌐 Radar</button>
+                                </>
+                            )}
+                        </div>
 
-                        {/* Desktop User Section (Visible > 768px via CSS) */}
-                        <div className="nav-user-section desktop-only" style={{ marginLeft: 'auto', display: 'flex' }}>
-                            {currentUser ? (
-                                <div className="user-profile-widget">
-                                    <div className="user-info" onClick={() => setView('profile')}>
-                                        <img
-                                            src={currentUser.avatar_url || currentUser.default_avatar_url}
-                                            alt={currentUser.username}
-                                            className="avatar-small"
-                                            onError={(e) => {
-                                                e.target.onerror = null;
-                                                if (e.target.src !== currentUser.default_avatar_url) {
-                                                    e.target.src = currentUser.default_avatar_url;
-                                                } else {
-                                                    e.target.src = 'https://via.placeholder.com/32?text=?';
-                                                }
-                                            }}
-                                        />
-                                        <div className="user-details">
-                                            <span className="username">{currentUser.username}</span>
-                                        </div>
-                                    </div>
-                                    <button className="btn logout-btn" onClick={() => { localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); setAuthenticated(false); }}>
+                        {/* Desktop User Section & Mobile Auth Button */}
+                        <div className="nav-actions">
+                            {!authenticated ? (
+                                <button className="btn primary btn-sm" onClick={() => setShowLogin(true)}>Acceder</button>
+                            ) : currentUser ? (
+                                <div className="user-profile-widget desktop-only" onClick={() => setView('profile')}>
+                                    <img
+                                        src={currentUser.avatar_url || currentUser.default_avatar_url}
+                                        alt={currentUser.username}
+                                        className="avatar-small"
+                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/32?text=?' }}
+                                    />
+                                    <button className="btn logout-btn" onClick={(e) => { e.stopPropagation(); localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); setAuthenticated(false); }}>
                                         Salir
                                     </button>
                                 </div>
                             ) : (
-                                <div className="auth-buttons">
-                                    {(!showLogin && !showRegister) ? (
-                                        <button className="btn primary" onClick={() => setShowLogin(true)}>Acceder</button>
-                                    ) : (
-                                        <button className="btn secondary" onClick={() => { setShowLogin(false); setShowRegister(false); }}>Cerrar</button>
-                                    )}
+                                <div className="user-profile-widget desktop-only" style={{ opacity: 0.5 }}>
+                                    <div className="avatar-small" style={{ backgroundColor: 'var(--surface-light)' }}></div>
+                                    <button className="btn logout-btn" disabled>Cargando...</button>
                                 </div>
                             )}
                         </div>
-
-                    </div>
-
-                    <div className="nav-links">
-                        <button className={`btn nav-item ${view === 'events' ? 'active' : ''}`} onClick={() => setView('events')}>📅 Eventos</button>
-                        {authenticated && (
-                            <>
-                                <button className={`btn nav-item ${view === 'registrations' ? 'active' : ''}`} onClick={() => setView('registrations')}>🎟️ Mis Entradas</button>
-                                <button className={`btn nav-item ${view === 'groups' ? 'active' : ''}`} onClick={() => setView('groups')}>👥 Mis Grupos</button>
-                            </>
-                        )}
                     </div>
                 </div>
             </nav>
@@ -245,7 +233,24 @@ function App() {
                 ) : (
                     <>
                         {view === 'events' && (
-                            <ErrorBoundary><EventList /></ErrorBoundary>
+                            <ErrorBoundary>
+                                <EventList
+                                    onJoinLobby={(ev) => {
+                                        setLobbyEvent(ev);
+                                        setView('lobby');
+                                    }}
+                                />
+                            </ErrorBoundary>
+                        )}
+                        {view === 'lobby' && authenticated && lobbyEvent && (
+                            <ErrorBoundary>
+                                <SocialLobby
+                                    eventId={lobbyEvent.id}
+                                    eventName={lobbyEvent.name}
+                                    currentUser={currentUser}
+                                    onBack={() => setView('events')}
+                                />
+                            </ErrorBoundary>
                         )}
                         {view === 'join' && (
                             <ErrorBoundary>
@@ -265,8 +270,23 @@ function App() {
                         {view === 'registrations' && authenticated && (
                             <ErrorBoundary><RegistrationList /></ErrorBoundary>
                         )}
+                        {view === 'wallet' && authenticated && (
+                            <ErrorBoundary><Wallet userId={currentUser?.id} /></ErrorBoundary>
+                        )}
                         {view === 'groups' && authenticated && (
                             <ErrorBoundary><GroupList /></ErrorBoundary>
+                        )}
+                        {view === 'clubs' && authenticated && (
+                            <ErrorBoundary><ClubList /></ErrorBoundary>
+                        )}
+                        {view === 'radar' && authenticated && (
+                            <ErrorBoundary>
+                                <SocialRadar
+                                    eventId={null}
+                                    currentUser={currentUser}
+                                    initialFilter={radarFilter}
+                                />
+                            </ErrorBoundary>
                         )}
                         {view === 'profile' && authenticated && currentUser && (
                             <ErrorBoundary>
@@ -275,6 +295,19 @@ function App() {
                                     onBack={() => setView('events')}
                                     showVerificationAlert={emailNotVerifiedAlert}
                                     onClearAlert={() => setEmailNotVerifiedAlert(false)}
+                                />
+                            </ErrorBoundary>
+                        )}
+                        {view === 'social-profile' && (
+                            <ErrorBoundary>
+                                <SocialProfile
+                                    userId={socialProfileId || (currentUser?.id)}
+                                    currentUserId={currentUser?.id}
+                                    onBack={() => setView('events')}
+                                    onInterestClick={(tagName) => {
+                                        setRadarFilter(tagName);
+                                        setView('radar');
+                                    }}
                                 />
                             </ErrorBoundary>
                         )}
@@ -287,6 +320,11 @@ function App() {
                 onNavigate={setView}
                 authenticated={authenticated}
             />
+
+            {/* QR FAB — quick ticket access, visible only when authenticated */}
+            {authenticated && (
+                <QRFab onPress={() => setView('registrations')} />
+            )}
         </div>
     );
 }

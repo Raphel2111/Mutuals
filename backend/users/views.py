@@ -8,11 +8,13 @@ from django.conf import settings
 from django.utils import timezone
 from django.shortcuts import redirect
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, VerificationCode
 from .serializers import (
     UserSerializer, UserRegistrationSerializer, UserUpdateSerializer,
-    PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
+    InterestTagSerializer
 )
+from .models import User, VerificationCode, InterestTag
+import jwt
 import logging
 
 logger = logging.getLogger(__name__)
@@ -80,6 +82,62 @@ class UserViewSet(viewsets.ModelViewSet):
             )
         return super().partial_update(request, *args, **kwargs)
 
+    @action(detail=True, methods=['get'], url_path='public_profile',
+            permission_classes=[permissions.AllowAny])
+    def public_profile(self, request, pk=None):
+        """
+        GET /api/users/{id}/public_profile/
+        Public Social Resume — one optimised query, AllowAny.
+        """
+        from .serializers import PublicProfileSerializer
+        from events.models import Registration
+        from django.db.models import Prefetch
+
+        try:
+            user = (
+                User.objects
+                .prefetch_related(
+                    Prefetch(
+                        'club_memberships',
+                        queryset=__import__('events.models', fromlist=['ClubMembership'])
+                            .ClubMembership.objects
+                            .filter(status='approved')
+                            .select_related('club'),
+                        to_attr='approved_memberships',
+                    ),
+                    'interests',
+                    Prefetch(
+                        'registrations',
+                        queryset=Registration.objects
+                            .filter(status='valid')
+                            .select_related('event')
+                            .order_by('-event__date'),
+                        to_attr='last_events_list',
+                    ),
+                    'profile',
+                )
+                .get(pk=pk)
+            )
+        except User.DoesNotExist:
+            return Response({'detail': 'Usuario no encontrado.'}, status=404)
+
+        # Slice to 3 after prefetch (slicing in Prefetch breaks combine with .get())
+        user.last_events_list = user.last_events_list[:3]
+
+        serializer = PublicProfileSerializer(user, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='toggle_event_history')
+    def toggle_event_history(self, request, pk=None):
+        """POST /api/users/{id}/toggle_event_history/ — flip privacy toggle."""
+        user = self.get_object()
+        if user.pk != request.user.pk and not request.user.is_staff:
+            return Response({'detail': 'Sin permisos.'}, status=403)
+        profile, _ = __import__('users.models', fromlist=['UserProfile']).UserProfile.objects.get_or_create(user=user)
+        profile.show_event_history = not profile.show_event_history
+        profile.save(update_fields=['show_event_history'])
+        return Response({'show_event_history': profile.show_event_history})
+
     @action(detail=False, methods=['get'], url_path='me')
     def me(self, request):
         """Return the currently logged in user's profile."""
@@ -134,6 +192,117 @@ class UserViewSet(viewsets.ModelViewSet):
                 }
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='magic-login', permission_classes=[permissions.AllowAny], authentication_classes=[])
+    def magic_login(self, request):
+        """Valida un Magic Link y loguea al usuario."""
+        token = request.data.get('token')
+        if not token:
+            return Response({'error': 'Token missing'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            user_id = payload.get('user_id')
+            email = payload.get('email')
+            
+            if user_id:
+                user = User.objects.filter(id=user_id).first()
+            else:
+                user = User.objects.filter(email=email).first()
+                
+            if not user:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+                
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email
+                }
+            })
+        except jwt.ExpiredSignatureError:
+            return Response({'error': 'Link expired'}, status=status.HTTP_401_UNAUTHORIZED)
+        except jwt.InvalidTokenError:
+            return Response({'error': 'Invalid link'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    @action(detail=False, methods=['post'], url_path='send-magic-link', permission_classes=[permissions.AllowAny], authentication_classes=[])
+    def send_magic_link(self, request):
+        """Generates a temporary magic link and sends it via email. 
+        Supports auto-creating guests if 'create_guest' is True."""
+        email = request.data.get('email', '').strip().lower()
+        create_guest = request.data.get('create_guest', False)
+
+        if not email:
+            return Response({'error': 'Email missing'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        user = User.objects.filter(email=email).first()
+        
+        if not user and create_guest:
+            # Create a guest user
+            username = email.split('@')[0]
+            # Ensure unique username
+            base_username = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}_{counter}"
+                counter += 1
+            
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=User.objects.make_random_password(),
+                is_active=True
+            )
+            # Create profile and wallet for the new guest
+            if not hasattr(user, 'profile'):
+                from .models import UserProfile
+                UserProfile.objects.create(user=user)
+            from payments.models import Wallet
+            Wallet.objects.get_or_create(user=user)
+
+        if not user:
+             return Response({'error': 'User not found and guest creation not requested'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Generate token valid for 15 minutes
+        from datetime import datetime, timedelta
+        payload = {
+            'user_id': user.id,
+            'email': email,
+            'exp': datetime.utcnow() + timedelta(minutes=15),
+            'iat': datetime.utcnow()
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+        
+        magic_link = f"{settings.FRONTEND_URL}/#/magic-login?token={token}"
+        
+        # Send email
+        try:
+            subject = 'Your Ticket / Magic Link - MUTUALS'
+            message = f'''Hello,
+
+Click the link below to securely access your tickets and account:
+
+{magic_link}
+
+This link will expire in 15 minutes.
+
+Cheers,
+Mutuals Team
+            '''
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            return Response({'detail': 'Magic link sent successfully'})
+        except Exception as e:
+            logger.error(f'Error sending magic link: {e}')
+            return Response({'error': 'Failed to send email'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'], url_path='send-email-verification')
     def send_email_verification(self, request):
@@ -447,3 +616,19 @@ class OAuthCallbackView(APIView):
         redirect_url = f"{settings.FRONTEND_URL}/#/oauth-success?access={access_token}&refresh={refresh_token_str}"
         logger.info(f"OAuth callback - Redirecting to: {redirect_url[:100]}...")
         return redirect(redirect_url)
+
+class InterestTagViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint that allows filtering and listing InterestTags.
+    Read-only for all users (authenticated). Admins can manage them via Django Admin.
+    """
+    queryset = InterestTag.objects.all().order_by('name')
+    serializer_class = InterestTagSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category = self.request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category=category)
+        return queryset

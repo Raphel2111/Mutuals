@@ -1,49 +1,66 @@
-version: '3.8'
+version: '3.9'
 
 services:
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   db:
     image: postgres:15-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=eventoapp_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      POSTGRES_DB: mutuals
+      POSTGRES_USER: mutuals
+      POSTGRES_PASSWORD: mutuals_dev_pw
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U mutuals" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    build: ./backend
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - ./backend:/app
+    build:
+      context: ./Mutuals/backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
-      - SECRET_KEY=super-secret-dev-key
-      - ALLOWED_HOSTS=*
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/eventoapp_db
-      - CORS_ALLOWED_ORIGINS=http://localhost:5173
-      - FRONTEND_URL=http://localhost:5173
+      DEBUG: "True"
+      DATABASE_URL: postgresql://mutuals:mutuals_dev_pw@db:5432/mutuals
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: dev-secret-key-replace-in-prod
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
+    volumes:
+      - ./Mutuals/backend:/app
+      - media_data:/app/media
     depends_on:
-      - db
-    restart: always
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             daphne -b 0.0.0.0 -p 8000 evento_app.asgi:application"
 
   frontend:
-    image: node:18-alpine
-    working_dir: /app
-    volumes:
-      - ./frontend_web:/app
-      - /app/node_modules
+    build:
+      context: ./Mutuals/frontend_web
+      dockerfile: Dockerfile
     ports:
-      - "5173:5173"
-    command: sh -c "npm install && npm run dev -- --host"
-    environment:
-      - VITE_API_URL=http://localhost:8000
+      - "80:80"
     depends_on:
       - backend
-    restart: always
 
 volumes:
-  postgres_data:
+  pgdata:
+  media_data:

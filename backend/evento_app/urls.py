@@ -5,13 +5,22 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import routers
 from events.views import EventViewSet, RegistrationViewSet, WalletViewSet, TransactionViewSet
-from events.views import DistributionGroupViewSet
-from events.views import GroupAccessTokenViewSet
-from users.views import UserViewSet, OAuthCallbackView
+from events.views import DistributionGroupViewSet, ClubViewSet, ClubMembershipViewSet
+from events.views import GroupAccessTokenViewSet, ConnectionViewSet, EventPhotoViewSet, EventRatingViewSet
+from events.views_clubs import ClubPostViewSet, ClubWallPostViewSet
+from notifications.views import NotificationViewSet, ReportViewSet
+from users.views import UserViewSet, OAuthCallbackView, InterestTagViewSet
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from events.views_stripe import create_payment_intent, stripe_webhook
+from events.stripe_views import (
+    stripe_connect_onboard, stripe_connect_status, membership_checkout,
+    stripe_webhook as monetization_webhook,
+)
+from events.views_social import get_social_card
+
 
 router = routers.DefaultRouter()
 router.register(r'events', EventViewSet, basename='event')
@@ -19,8 +28,18 @@ router.register(r'registrations', RegistrationViewSet, basename='registration')
 router.register(r'groups', DistributionGroupViewSet, basename='group')
 router.register(r'group-tokens', GroupAccessTokenViewSet, basename='groupaccesstoken')
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'interest-tags', InterestTagViewSet, basename='interesttag')
 router.register(r'wallets', WalletViewSet, basename='wallet')
 router.register(r'transactions', TransactionViewSet, basename='transaction')
+router.register(r'clubs', ClubViewSet, basename='club')
+router.register(r'club-memberships', ClubMembershipViewSet, basename='clubmembership')
+router.register(r'connections', ConnectionViewSet, basename='connection')
+router.register(r'event-photos', EventPhotoViewSet, basename='eventphoto')
+router.register(r'event-ratings', EventRatingViewSet, basename='eventrating')
+router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'reports',       ReportViewSet,       basename='report')
+router.register(r'club-posts',    ClubPostViewSet,     basename='clubpost')
+router.register(r'club-wall-posts', ClubWallPostViewSet, basename='clubwallpost')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,6 +50,14 @@ urlpatterns = [
     path('auth/', include('social_django.urls', namespace='social')),
     path('auth/callback/', OAuthCallbackView.as_view(), name='oauth_callback'),
     path('tickets/', include('events.urls')),
+    path('api/stripe/create-payment-intent/', create_payment_intent, name='create_payment_intent'),
+    path('api/stripe/webhook/', stripe_webhook, name='stripe_webhook'),
+    # Monetization — Stripe Connect + Memberships
+    path('api/stripe/connect/onboard/',   stripe_connect_onboard,  name='stripe_connect_onboard'),
+    path('api/stripe/connect/status/',    stripe_connect_status,   name='stripe_connect_status'),
+    path('api/stripe/membership/checkout/', membership_checkout,   name='membership_checkout'),
+    path('api/stripe/membership/webhook/', monetization_webhook,   name='monetization_webhook'),
+    path('api/social-card/<int:registration_id>/', get_social_card, name='get_social_card'),
 ]
 
 if settings.DEBUG:

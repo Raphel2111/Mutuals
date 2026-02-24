@@ -2,24 +2,22 @@ import React from 'react';
 
 export default function BrandLogo() {
   return (
-    <div aria-label="La Terreta logo" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <img
-        src="/logo.png"
-        alt="La Terreta"
-        style={{
-          height: '40px',
-          width: 'auto',
-          objectFit: 'contain'
-        }}
-      />
+    <div aria-label="MUTUALS logo" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* Fallback to text if logo image is missing during the transition */}
       <span style={{
-        fontWeight: 800,
-        fontSize: '22px',
-        color: '#1e293b',
-        letterSpacing: '-0.5px'
+        fontWeight: 900,
+        fontSize: '24px',
+        color: 'var(--text)',
+        letterSpacing: '-1px',
+        fontFamily: 'var(--font-head)'
       }}>
-        La Terreta
+        MUTUALS
       </span>
+      <span style={{
+        color: 'var(--accent)',
+        fontWeight: 900,
+        fontSize: '26px'
+      }}>.</span>
     </div>
   );
 }

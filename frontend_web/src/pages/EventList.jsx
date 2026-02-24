@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from '../api';
 import EventDetail from './EventDetail';
 import GroupDetail from './GroupDetail';
+import EventCard from '../components/EventCard';
 import { fetchCurrentUser } from '../auth';
 
-export default function EventList() {
+export default function EventList(props) {
     const [events, setEvents] = useState([]);
     const [selectedEventId, setSelectedEventId] = useState(null);
     const [selectedGroupId, setSelectedGroupId] = useState(null);
@@ -13,27 +14,63 @@ export default function EventList() {
 
     // Filtros
     const [searchText, setSearchText] = useState('');
-    const [visibilityFilter, setVisibilityFilter] = useState('all'); // 'all', 'public', 'private'
+    const [visibilityFilter, setVisibilityFilter] = useState('all');
     const [isFreeFilter, setIsFreeFilter] = useState(false);
-    const [orderBy, setOrderBy] = useState('-date'); // '-date', 'date', 'name', '-name'
+    const [orderBy, setOrderBy] = useState('-date');
     const [groups, setGroups] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState('');
 
+    const [favorites, setFavorites] = useState({});
+    const [heroIndex, setHeroIndex] = useState(0);
+
+    // Predictive search
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [inputValue, setInputValue] = useState('');
+    const searchRef = useRef(null);
+
+    // Auto-rotate hero
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setHeroIndex(prev => (prev + 1) % 3);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Close suggestions on outside click
+    useEffect(() => {
+        const handler = (e) => {
+            if (searchRef.current && !searchRef.current.contains(e.target)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const toggleFavorite = (id) => {
+        setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const handleShare = async (e, ev) => {
+        e.stopPropagation();
+        const text = `🔥 ¡Mira este evento: ${ev.name} en MUTUALS! \nEntradas volando...`;
+        if (navigator.share) {
+            try { await navigator.share({ title: ev.name, text, url: window.location.href }); }
+            catch (err) { }
+        }
+    };
+
     useEffect(() => {
         fetchCurrentUser().then(u => setCurrentUser(u));
-        // Cargar grupos disponibles para el filtro
         axios.get('groups/')
             .then(res => {
                 const payload = res.data;
-                const items = Array.isArray(payload) ? payload : (payload.results || []);
-                setGroups(items);
+                setGroups(Array.isArray(payload) ? payload : (payload.results || []));
             })
             .catch(err => console.error('Error loading groups:', err));
     }, []);
 
-    useEffect(() => {
-        loadEvents();
-    }, [searchText, visibilityFilter, isFreeFilter, orderBy, selectedGroup]);
+    useEffect(() => { loadEvents(); }, [searchText, visibilityFilter, isFreeFilter, orderBy, selectedGroup]);
 
     function loadEvents() {
         setLoading(true);
@@ -47,34 +84,44 @@ export default function EventList() {
         axios.get('events/', { params })
             .then(res => {
                 const payload = res.data;
-                const items = Array.isArray(payload) ? payload : (payload.results || []);
-                setEvents(items);
+                setEvents(Array.isArray(payload) ? payload : (payload.results || []));
             })
             .catch(() => { })
             .finally(() => setLoading(false));
     }
 
     function deleteEvent(eventId, eventName) {
-        if (!window.confirm(`¿Estás seguro de eliminar el evento "${eventName}"? Esta acción no se puede deshacer y eliminará todas las inscripciones asociadas.`)) {
-            return;
-        }
-
+        if (!window.confirm(`¿Eliminar "${eventName}"?`)) return;
         axios.delete(`events/${eventId}/`)
-            .then(() => {
-                setEvents(prev => prev.filter(e => e.id !== eventId));
-                alert('Evento eliminado correctamente.');
-            })
-            .catch(err => {
-                console.error('Error deleting event:', err.response?.data || err.message);
-                alert('Error al eliminar evento: ' + (err.response?.data?.detail || err.message));
-            });
+            .then(() => setEvents(prev => prev.filter(e => e.id !== eventId)))
+            .catch(err => alert('Error: ' + (err.response?.data?.detail || err.message)));
     }
 
     function isEventAdmin(event) {
         if (!currentUser) return false;
         if (currentUser.is_staff) return true;
-        return event.admins && event.admins.some(admin => admin.id === currentUser.id);
+        return event.admins?.some(a => a.id === currentUser.id);
     }
+
+    // ─── Predictive suggestions (local filter, no extra API call) ────────────
+    const suggestions = inputValue.length >= 2
+        ? events.filter(ev =>
+            ev.name.toLowerCase().includes(inputValue.toLowerCase()) ||
+            (ev.location || '').toLowerCase().includes(inputValue.toLowerCase())
+        ).slice(0, 5)
+        : [];
+
+    const handleSearchInput = (e) => {
+        const val = e.target.value;
+        setInputValue(val);
+        setShowSuggestions(val.length >= 2);
+    };
+
+    const commitSearch = (value) => {
+        setInputValue(value);
+        setSearchText(value);
+        setShowSuggestions(false);
+    };
 
     if (selectedGroupId) {
         return <GroupDetail groupId={selectedGroupId} onBack={() => setSelectedGroupId(null)} />;
@@ -84,162 +131,175 @@ export default function EventList() {
         return <EventDetail
             eventId={selectedEventId}
             onBack={() => setSelectedEventId(null)}
-            onViewGroup={(groupId) => {
-                setSelectedEventId(null);
-                setSelectedGroupId(groupId);
-            }}
+            onViewGroup={(groupId) => { setSelectedEventId(null); setSelectedGroupId(groupId); }}
+            onJoinLobby={props.onJoinLobby}
         />;
     }
 
     if (loading) {
         return (
-            <div className="container" style={{ maxWidth: '800px', margin: '0 auto' }}>
-                <div style={{ marginBottom: '20px' }}>
-                    <div className="skeleton" style={{ height: '40px', marginBottom: '20px', borderRadius: '12px' }}></div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <div className="skeleton" style={{ height: '36px', width: '100px', borderRadius: '10px' }}></div>
-                        <div className="skeleton" style={{ height: '36px', width: '100px', borderRadius: '10px' }}></div>
-                        <div className="skeleton" style={{ height: '36px', width: '100px', borderRadius: '10px' }}></div>
-                    </div>
+            <div className="container slide-up" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '80px' }}>
+                <div className="skeleton-box" style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)', height: '400px', marginBottom: '32px' }} />
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', overflow: 'hidden' }}>
+                    {[100, 120, 90].map((w, i) => (
+                        <div key={i} className="skeleton-box" style={{ height: '44px', width: `${w}px`, borderRadius: '22px' }} />
+                    ))}
                 </div>
-                {[1, 2, 3].map(i => (
-                    <div className="card" key={i} style={{ marginBottom: '16px', padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                            <div className="skeleton" style={{ height: '24px', width: '60%' }}></div>
-                            <div className="skeleton" style={{ height: '24px', width: '20%' }}></div>
+                <div className="grid">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="skeleton-card">
+                            <div className="skeleton-box skeleton-img" />
+                            <div style={{ padding: '24px' }}>
+                                <div className="skeleton-box skeleton-text-1" />
+                                <div className="skeleton-box skeleton-text-2" />
+                            </div>
                         </div>
-                        <div className="skeleton" style={{ height: '16px', width: '40%', marginBottom: '8px' }}></div>
-                        <div className="skeleton" style={{ height: '16px', width: '100%', marginBottom: '8px' }}></div>
-                        <div className="skeleton" style={{ height: '16px', width: '80%' }}></div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="container" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '80px' }}>
-            <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text)', marginBottom: '4px', letterSpacing: '-0.5px' }}>
-                    Explora la Terreta 🍊
-                </h1>
-                <p style={{ color: 'var(--muted)', fontSize: '15px' }}>
-                    {events.length} {events.length === 1 ? 'plan disponible' : 'planes disponibles'}
-                </p>
-            </div>
+        <div className="container slide-up" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '80px' }}>
 
-            {/* Search & Filters */}
-            <div style={{ marginBottom: '24px' }}>
-                <div className="search-container">
+            {/* ── HERO CAROUSEL ── */}
+            {events.length > 0 && !searchText && visibilityFilter === 'all' && !selectedGroup && (
+                <div className="hero-carousel">
+                    {events.slice(0, 3).map((ev, idx) => (
+                        <div
+                            key={ev.id}
+                            className={`hero-slide ${idx === (heroIndex % Math.max(1, Math.min(events.length, 3))) ? 'active' : ''}`}
+                            onClick={() => setSelectedEventId(ev.id)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <img src={ev.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070'} alt={ev.name} />
+                            <div className="hero-slide-content">
+                                <div className="hero-slide-container">
+                                    <span style={{ background: 'var(--accent)', color: 'white', padding: '4px 12px', borderRadius: '4px', fontSize: '12px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px', display: 'inline-block' }}>Destacado</span>
+                                    <h2 style={{ fontSize: '42px', color: 'white', margin: '0 0 12px', lineHeight: 1.1, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{ev.name}</h2>
+                                    <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '18px', maxWidth: '600px', margin: '0 0 24px', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
+                                        {ev.date ? new Date(ev.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Próximamente'}
+                                    </p>
+                                    <button className="btn btn-shimmer" style={{ background: 'var(--text)', color: 'var(--bg)', padding: '14px 32px', fontSize: '16px' }}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedEventId(ev.id); }}>
+                                        Comprar Entradas
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <div style={{ marginBottom: '32px' }}>
+                <h1 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '24px', letterSpacing: '-0.5px' }}>
+                    Descubre eventos
+                </h1>
+
+                {/* ── Predictive search ── */}
+                <div className="search-container" ref={searchRef} style={{ position: 'relative' }}>
                     <span className="search-icon">🔍</span>
                     <input
                         className="search-input"
                         type="text"
-                        placeholder="Buscar eventos..."
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
+                        placeholder="Buscar artistas, clubs o temáticas..."
+                        value={inputValue}
+                        onChange={handleSearchInput}
+                        onFocus={() => inputValue.length >= 2 && setShowSuggestions(true)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitSearch(inputValue);
+                            if (e.key === 'Escape') setShowSuggestions(false);
+                        }}
                     />
+                    {/* Clear button */}
+                    {inputValue && (
+                        <button
+                            onClick={() => { setInputValue(''); setSearchText(''); setShowSuggestions(false); }}
+                            style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}
+                            aria-label="Limpiar búsqueda"
+                        >✕</button>
+                    )}
+
+                    {/* Predictive dropdown */}
+                    {showSuggestions && suggestions.length > 0 && (
+                        <div style={{
+                            position: 'absolute', top: '110%', left: 0, right: 0, zIndex: 200,
+                            background: 'rgba(15,23,42,0.96)', backdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(192,132,252,0.2)', borderRadius: 14,
+                            overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+                        }}>
+                            {suggestions.map(ev => (
+                                <div
+                                    key={ev.id}
+                                    onClick={() => { setSelectedEventId(ev.id); setShowSuggestions(false); }}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 12,
+                                        padding: '10px 14px', cursor: 'pointer',
+                                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                        transition: 'background 0.12s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(192,132,252,0.08)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <div style={{
+                                        width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                                        background: ev.image_url ? `url(${ev.image_url}) center/cover` : 'linear-gradient(135deg,#9333ea,#d946ef)',
+                                    }} />
+                                    <div>
+                                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: '#e2e8f0' }}>{ev.name}</p>
+                                        <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>
+                                            {ev.date ? new Date(ev.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : ''}
+                                            {ev.location ? ` · 📍 ${ev.location}` : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                <div className="filter-group">
-                    <select
-                        className="filter-select"
-                        value={visibilityFilter}
-                        onChange={(e) => setVisibilityFilter(e.target.value)}
-                    >
-                        <option value="all">👁️ Todos</option>
-                        <option value="public">🌍 Públicos</option>
-                        <option value="private">🔒 Privados</option>
-                    </select>
-
-                    <select
-                        className="filter-select"
-                        value={selectedGroup}
-                        onChange={(e) => setSelectedGroup(e.target.value)}
-                    >
-                        <option value="">📂 Todos los grupos</option>
-                        {groups.map(g => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        className="filter-select"
-                        value={orderBy}
-                        onChange={(e) => setOrderBy(e.target.value)}
-                    >
-                        <option value="-date">📅 Más recientes</option>
-                        <option value="date">⏳ Próximos</option>
-                        <option value="name">🔤 Nombre (A-Z)</option>
-                    </select>
+                {/* Pill filters */}
+                <div className="pill-container">
+                    <button className={`pill ${visibilityFilter === 'all' && !selectedGroup && !isFreeFilter ? 'active' : ''}`}
+                        onClick={() => { setVisibilityFilter('all'); setSelectedGroup(''); setIsFreeFilter(false); setOrderBy('-date'); setInputValue(''); setSearchText(''); }}>
+                        🔥 Todos
+                    </button>
+                    <button className={`pill ${visibilityFilter === 'public' ? 'active' : ''}`} onClick={() => setVisibilityFilter('public')}>🌍 Públicos</button>
+                    <button className={`pill ${visibilityFilter === 'private' ? 'active' : ''}`} onClick={() => setVisibilityFilter('private')}>🔒 Exclusivos</button>
+                    <button className={`pill ${isFreeFilter ? 'active' : ''}`} onClick={() => setIsFreeFilter(!isFreeFilter)}>💸 Gratis</button>
+                    <button className={`pill ${orderBy === 'date' ? 'active' : ''}`} onClick={() => setOrderBy('date')}>⏳ Próximos</button>
+                    {groups.slice(0, 3).map(g => (
+                        <button key={g.id} className={`pill ${selectedGroup === g.id.toString() ? 'active' : ''}`}
+                            onClick={() => setSelectedGroup(g.id.toString())}>📂 {g.name}</button>
+                    ))}
                 </div>
             </div>
 
             {events.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: 'var(--surface)' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🪁</div>
-                    <h3 style={{ margin: '0 0 8px 0', color: 'var(--text)', fontWeight: '700' }}>No hay planes por aquí</h3>
-                    <p style={{ margin: 0, color: 'var(--muted)', fontSize: '15px', lineHeight: '1.5' }}>
-                        No hemos encontrado eventos con estos filtros.<br />Prueba a buscar otra cosa.
+                <div className="card glassmorphism" style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid rgba(192,132,252,0.2)' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔮</div>
+                    <h3 style={{ margin: '0 0 12px', fontWeight: '800', fontSize: '24px' }}>No encontramos coincidencias</h3>
+                    <p style={{ margin: '0 auto 32px', color: 'var(--muted)', maxWidth: '400px' }}>
+                        Descubre los eventos más populares de esta semana.
                     </p>
-                    <button
-                        className="btn small secondary"
-                        style={{ marginTop: '20px' }}
-                        onClick={() => { setSearchText(''); setVisibilityFilter('all'); setSelectedGroup(''); }}
-                    >
-                        Limpiar filtros
+                    <button className="btn btn-lg btn-shimmer"
+                        style={{ background: 'var(--accent-gradient)', color: 'white', border: 'none', boxShadow: 'var(--shadow-glow)' }}
+                        onClick={() => { setInputValue(''); setSearchText(''); setVisibilityFilter('all'); setSelectedGroup(''); setIsFreeFilter(false); loadEvents(); }}>
+                        Ver Eventos Top
                     </button>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="grid">
                     {events.map(ev => (
-                        <div className="card event-card" key={ev.id} onClick={() => setSelectedEventId(ev.id)} style={{ cursor: 'pointer', transition: 'transform 0.2s', padding: '20px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text)', lineHeight: '1.3' }}>{ev.name}</h3>
-                                <span className={`badge ${ev.is_public ? 'public' : 'private'}`}>
-                                    {ev.is_public ? 'Público' : 'Privado'}
-                                </span>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', fontSize: '14px' }}>
-                                    <span>📅</span>
-                                    <span style={{ fontWeight: '500' }}>
-                                        {ev.date ? new Date(ev.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' }) : 'Fecha por determinar'}
-                                    </span>
-                                    <span>•</span>
-                                    <span>
-                                        {ev.date ? new Date(ev.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : ''}
-                                    </span>
-                                </div>
-
-                                {ev.location && (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', fontSize: '14px' }}>
-                                        <span>📍</span>
-                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.location}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {ev.description && (
-                                <p style={{ fontSize: '14px', color: '#475569', margin: '0 0 16px 0', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {ev.description}
-                                </p>
-                            )}
-
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    {ev.group_name && (
-                                        <span style={{ fontSize: '12px', color: '#7c3aed', background: '#f5f3ff', padding: '4px 8px', borderRadius: '6px', fontWeight: '600' }}>
-                                            {ev.group_name}
-                                        </span>
-                                    )}
-                                </div>
-                                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    Ver info <span>→</span>
-                                </span>
-                            </div>
-                        </div>
+                        <EventCard
+                            key={ev.id}
+                            event={ev}
+                            onSelect={setSelectedEventId}
+                            isFavorite={!!favorites[ev.id]}
+                            onToggleFavorite={toggleFavorite}
+                            onShare={handleShare}
+                        />
                     ))}
                 </div>
             )}

@@ -1,0 +1,121 @@
+/* =========================================
+   MUTUALS - Sistema Dinámico de Temas (CSS Variables)
+   ========================================= */
+
+/* Tema 1: Dark (Por Defecto) - Neones y Glassmorphism */
+:root,
+[data-theme="dark"] {
+    --bg-primary: #0a0a0c;
+    --bg-secondary: #13141a;
+    --bg-tertiary: #1b1c24;
+
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --text-inverse: #0f172a;
+
+    --accent-color: #a855f7;
+    --accent-glow: rgba(168, 85, 247, 0.4);
+    --accent-gradient: linear-gradient(135deg, #a855f7, #6366f1);
+
+    --border-color: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(19, 20, 26, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.05);
+
+    --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px var(--accent-glow);
+
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --border-radius-base: 16px;
+}
+
+/* Tema 2: Light (Soft) - Claro, Azul marino, sombras suaves */
+[data-theme="light"] {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f3f5;
+
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --text-inverse: #ffffff;
+
+    --accent-color: #3b82f6;
+    /* Modern Navy Blue */
+    --accent-glow: rgba(59, 130, 246, 0.2);
+    --accent-gradient: linear-gradient(135deg, #3b82f6, #1d4ed8);
+
+    --border-color: rgba(0, 0, 0, 0.08);
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    /* Frosty light */
+    --glass-border: rgba(0, 0, 0, 0.05);
+
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.08);
+    --shadow-glow: 0 8px 20px var(--accent-glow);
+
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --border-radius-base: 16px;
+}
+
+/* Tema 3: Cyberpunk (Contraste Alto) - Negro Puro, Amarillos y Fucsias */
+[data-theme="cyberpunk"] {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #111111;
+
+    --text-main: #fcfcfc;
+    --text-muted: #a3a3a3;
+    --text-inverse: #000000;
+
+    --accent-color: #fce700;
+    /* Cyber Yellow */
+    --accent-glow: rgba(252, 231, 0, 0.5);
+    --accent-gradient: linear-gradient(135deg, #fce700, #ff007f);
+    /* Yellow to Fuchsia */
+
+    --border-color: #333333;
+    --glass-bg: rgba(10, 10, 10, 0.8);
+    --glass-border: #fce700;
+    /* Aggressive solid borders */
+
+    --shadow-sm: 4px 4px 0px rgba(252, 231, 0, 0.3);
+    /* Brutalist offset shadow */
+    --shadow-md: 6px 6px 0px rgba(255, 0, 127, 0.4);
+    --shadow-glow: 0 0 25px var(--accent-glow);
+
+    --font-heading: 'Space Grotesk', 'Courier New', monospace;
+    /* Techy font if available */
+    --border-radius-base: 0px;
+    /* Sharp brutalist edges */
+}
+
+/* Tema 4: Minimal (Monocromo) - Gris, limpio, serio */
+[data-theme="minimal"] {
+    --bg-primary: #e5e5e5;
+    --bg-secondary: #f0f0f0;
+    --bg-tertiary: #d4d4d4;
+
+    --text-main: #171717;
+    --text-muted: #525252;
+    --text-inverse: #ffffff;
+
+    --accent-color: #171717;
+    /* Solid Black as accent */
+    --accent-glow: rgba(0, 0, 0, 0.1);
+    --accent-gradient: #171717;
+    /* Flat black, no gradient in minimal */
+
+    --border-color: #a3a3a3;
+    --glass-bg: rgba(240, 240, 240, 0.95);
+    --glass-border: #a3a3a3;
+
+    --shadow-sm: none;
+    /* Flat design */
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-glow: none;
+
+    --font-heading: 'Playfair Display', 'Merriweather', serif;
+    /* Elegant serif */
+    --border-radius-base: 4px;
+    /* Subtle rounding */
+}

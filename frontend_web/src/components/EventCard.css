@@ -1,0 +1,230 @@
+/* ─── Card base ──────────────────────────────────────────────────────────── */
+.ec-card {
+    position: relative;
+    height: 320px;
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    will-change: transform;
+    transition: transform 0.15s ease, box-shadow 0.3s ease;
+    box-shadow: var(--shadow);
+}
+
+.ec-card:hover {
+    box-shadow: var(--shadow-lg), 0 0 0 1px var(--primary-light);
+}
+
+/* ─── Full-bleed image ───────────────────────────────────────────────────── */
+.ec-image {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.5s ease;
+}
+
+.ec-card:hover .ec-image {
+    transform: scale(1.06);
+}
+
+/* ─── Dark gradient overlay ──────────────────────────────────────────────── */
+.ec-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+            rgba(0, 0, 0, 0.05) 0%,
+            rgba(0, 0, 0, 0.3) 40%,
+            rgba(0, 0, 0, 0.85) 100%);
+    transition: opacity 0.3s;
+}
+
+/* ─── Status badges — top-left ───────────────────────────────────────────── */
+.ec-badges {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 2;
+}
+
+.ec-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid var(--badge-color, rgba(255, 255, 255, 0.3));
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: white;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--badge-color, transparent) 40%, transparent);
+    letter-spacing: 0.01em;
+}
+
+/* ─── Favourite button — top-right ──────────────────────────────────────── */
+.ec-fav {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: transform 0.15s;
+}
+
+.ec-fav:hover {
+    transform: scale(1.2);
+}
+
+.ec-fav.active {
+    animation: fav-pop 0.3s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+@keyframes fav-pop {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.35);
+    }
+}
+
+/* ─── Text content panel — bottom ───────────────────────────────────────── */
+.ec-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    padding: 16px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ec-date {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 0;
+}
+
+.ec-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: white;
+    margin: 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.ec-location {
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ec-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.ec-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #d8b4fe;
+    text-shadow: 0 0 12px rgba(192, 132, 252, 0.5);
+}
+
+.ec-share {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ec-share:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+/* ─── CTA button ─────────────────────────────────────────────────────────── */
+.ec-cta {
+    margin-top: 10px;
+    padding: 10px 0;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(217, 70, 239, 0.7), rgba(147, 51, 234, 0.7));
+    backdrop-filter: blur(8px);
+    color: white;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: opacity 0.15s;
+    width: 100%;
+}
+
+.ec-cta:hover {
+    opacity: 0.88;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────────────────────── */
+
+/* 3D tilt and image-scale only on real hover-capable devices */
+@media (hover: none) {
+    .ec-card {
+        transform: none !important;
+    }
+
+    .ec-card:hover .ec-image {
+        transform: none;
+    }
+}
+
+/* Very small screens: shorter card */
+@media (max-width: 420px) {
+    .ec-card {
+        height: 240px;
+        border-radius: 16px;
+    }
+
+    .ec-name {
+        font-size: 1rem;
+    }
+
+    .ec-content {
+        padding: 12px 14px 14px;
+    }
+}

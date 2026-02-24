@@ -8,6 +8,7 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
+    const [errorModal, setErrorModal] = useState(null); // New state for aesthetic errors
 
     // Guest Form State
     const [showGuestForm, setShowGuestForm] = useState(false);
@@ -93,7 +94,7 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             })
             .catch(err => {
                 console.error(err);
-                alert('Error: ' + (err.response?.data?.detail || err.message));
+                setErrorModal(err.response?.data?.detail || err.message);
             })
             .finally(() => setCreating(false));
     }
@@ -122,49 +123,53 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             )}
 
             {/* RSVP SECTION */}
-            <div className="card" style={{ marginTop: 20, marginBottom: 20, textAlign: 'center', padding: '30px 20px' }}>
-                <h3 style={{ fontSize: '20px', marginBottom: '24px' }}>¿Asistirás al evento?</h3>
+            <div className="card glassmorphism" style={{ marginTop: 24, marginBottom: 24, textAlign: 'center', padding: '40px 24px', border: '1px solid rgba(192, 132, 252, 0.2)' }}>
+                <h3 style={{ fontSize: '24px', marginBottom: '8px', fontWeight: '800' }}>Reserva tu Acceso</h3>
+                <p style={{ color: 'var(--muted)', marginBottom: '32px' }}>Asegura tu plaza antes de que se agoten.</p>
 
                 {!myPersonalReg ? (
                     isDeadlinePassed && !event.is_admin ? (
-                        <div style={{ padding: 20, backgroundColor: '#fff7ed', borderRadius: 12, color: '#c2410c', border: '1px solid #fdba74' }}>
+                        <div style={{ padding: 20, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 12, color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                             <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
                             <strong>El plazo de inscripción ha finalizado.</strong>
                         </div>
                     ) : (
                         <div>
                             {isDeadlinePassed && event.is_admin && (
-                                <div style={{ marginBottom: 16, color: '#f59e0b', fontWeight: 'bold' }}>⚠️ Modo Admin: Plazo finalizado pero tienes acceso.</div>
+                                <div style={{ marginBottom: 16, color: 'var(--warning)', fontWeight: 'bold' }}>⚠️ Modo Admin: Plazo finalizado pero tienes acceso.</div>
                             )}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '320px', margin: '0 auto' }}>
                                 <button
                                     className="btn btn-lg"
                                     style={{
-                                        backgroundColor: '#10b981',
-                                        borderColor: '#059669',
+                                        background: 'var(--accent-gradient)',
                                         color: 'white',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'
+                                        border: 'none',
+                                        boxShadow: 'var(--shadow-glow)',
+                                        fontWeight: '800',
+                                        fontSize: '18px',
+                                        padding: '16px',
+                                        display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px'
                                     }}
                                     disabled={creating}
                                     onClick={() => handleCreateRegistration(false, 'confirmed')}
                                 >
-                                    <span style={{ fontSize: '24px' }}>👍</span>
-                                    <span>{creating ? 'Procesando...' : 'Sí, Asistiré'}</span>
+                                    <span>🎟️</span>
+                                    <span>{creating ? 'Procesando...' : 'Obtener Entrada'}</span>
                                 </button>
                                 <button
                                     className="btn btn-lg secondary"
                                     style={{
-                                        borderColor: '#ef4444',
-                                        color: '#dc2626',
-                                        backgroundColor: '#fef2f2',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-                                        opacity: creating ? 0.6 : 1
+                                        background: 'transparent',
+                                        borderColor: 'rgba(255,255,255,0.1)',
+                                        color: 'var(--muted)',
+                                        fontWeight: '600',
+                                        fontSize: '15px'
                                     }}
                                     disabled={creating}
                                     onClick={() => handleCreateRegistration(false, 'declined')}
                                 >
-                                    <span style={{ fontSize: '24px' }}>👎</span>
-                                    <span>No Asistiré</span>
+                                    No podré asistir
                                 </button>
                             </div>
                         </div>
@@ -229,6 +234,23 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
                     <button className="btn btn-full" style={{ backgroundColor: '#7c3aed', borderColor: '#6d28d9' }} onClick={() => handleCreateRegistration(true, 'confirmed')}>
                         Generar Invitación
                     </button>
+                </div>
+            )}
+
+            {/* ERROR MODAL FOR ACCESS BLOCKS */}
+            {errorModal && (
+                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setErrorModal(null)}>
+                    <div className="modal-content glassmorphism" style={{ maxWidth: '400px', width: '90%', padding: '32px', textAlign: 'center', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                        <button style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: 'var(--muted)', fontSize: '20px', cursor: 'pointer' }} onClick={() => setErrorModal(null)}>✕</button>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
+                        <h3 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '16px', color: 'var(--text)' }}>Acceso Restringido</h3>
+                        <p style={{ color: 'var(--muted)', fontSize: '15px', lineHeight: 1.6, marginBottom: '24px' }}>
+                            {errorModal}
+                        </p>
+                        <button className="btn btn-full" style={{ background: 'var(--accent-gradient)', color: 'white', border: 'none' }} onClick={() => setErrorModal(null)}>
+                            Entendido
+                        </button>
+                    </div>
                 </div>
             )}
 

@@ -12,9 +12,9 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-REEMPLAZA-ESTO-POR-UNA-CLA
 # Cast explicitly to boolean
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,eventy-backend.onrender.com').split(',')]
-if 'eventy-backend.onrender.com' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append('eventy-backend.onrender.com')
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com').split(',')]
+if '.onrender.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.onrender.com')
 
 # Render/Proxy support
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

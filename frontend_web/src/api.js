@@ -1,7 +1,13 @@
 import axios from 'axios';
 
 // Use environment variable for backend URL
-const BACKEND_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+let BACKEND_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+// Foolproof cleanup: gracefully strip any trailing slashes or accidental '/api' suffixes
+if (BACKEND_BASE.endsWith('/')) BACKEND_BASE = BACKEND_BASE.slice(0, -1);
+if (BACKEND_BASE.endsWith('/api')) BACKEND_BASE = BACKEND_BASE.slice(0, -4);
+if (BACKEND_BASE.endsWith('/')) BACKEND_BASE = BACKEND_BASE.slice(0, -1);
+
 const API_BASE = BACKEND_BASE + '/api/';
 
 const instance = axios.create({

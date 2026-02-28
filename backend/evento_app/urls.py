@@ -62,3 +62,18 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def debug_db(request):
+    return Response({
+        'db_engine': settings.DATABASES['default']['ENGINE'],
+        'db_name': settings.DATABASES['default']['NAME'],
+        'has_database_url': bool(settings.DATABASES['default'].get('HOST'))
+    })
+
+urlpatterns += [path('api/debug-db/', debug_db)]

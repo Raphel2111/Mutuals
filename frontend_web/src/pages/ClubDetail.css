@@ -44,14 +44,14 @@
     border-radius: 16px;
     overflow: hidden;
     flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.12);
-    background: linear-gradient(135deg, #1e293b, #334155);
+    border: 2px solid var(--border-color);
+    background: var(--bg-tertiary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.4rem;
     font-weight: 800;
-    color: rgba(255, 255, 255, .35);
+    color: var(--text-muted);
 }
 
 .cd-avatar img {
@@ -77,9 +77,9 @@
     font-weight: 700;
     padding: 3px 10px;
     border-radius: 20px;
-    background: rgba(0, 0, 0, 0.5);
-    color: #94a3b8;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
     backdrop-filter: blur(6px);
 }
 
@@ -189,7 +189,7 @@
     display: flex;
     gap: 8px;
     margin-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 10px;
     overflow-x: auto;
     scrollbar-width: none;
@@ -231,14 +231,14 @@
     flex-wrap: wrap;
     gap: 12px;
     padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     border-radius: 14px;
     transition: background 0.15s;
 }
 
 .cd-member-card:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-tertiary);
 }
 
 .cd-member-avatar {
@@ -247,13 +247,13 @@
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: linear-gradient(135deg, #1e293b, #334155);
+    background: var(--bg-tertiary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.85rem;
     font-weight: 800;
-    color: rgba(255, 255, 255, .4);
+    color: var(--text-muted);
 }
 
 .cd-member-avatar img {
@@ -297,9 +297,9 @@
 }
 
 .cd-badge-select {
-    background: rgba(255, 255, 255, 0.04);
-    color: #94a3b8;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--glass-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 4px 8px;
     font-size: 0.75rem;
@@ -357,7 +357,7 @@
 .cd-pending-msg {
     margin: 10px 0 0;
     font-size: 0.82rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     font-style: italic;
     padding-left: 50px;
 }
@@ -385,8 +385,8 @@
 .cd-input {
     width: 100%;
     box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     color: var(--text-main);
     padding: 10px 12px;
@@ -445,7 +445,7 @@
     background: rgba(217, 70, 239, 0.04);
     border: 1px solid rgba(192, 132, 252, 0.12);
     border-radius: 16px;
-    color: #94a3b8;
+    color: var(--text-muted);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -463,8 +463,8 @@
 
 /* Create post box */
 .cd-create-post {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 14px;
 }
@@ -488,8 +488,8 @@
 }
 
 .cd-tag-btn {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     color: var(--text-muted);
     border-radius: 20px;
     padding: 4px 12px;
@@ -524,7 +524,7 @@
 
 .cd-btn-cancel {
     background: none;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-color);
     color: var(--text-muted);
     border-radius: 10px;
     padding: 8px 16px;
@@ -534,15 +534,15 @@
 
 /* Post cards */
 .cd-post-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 14px 16px;
     transition: background 0.15s;
 }
 
 .cd-post-card:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--bg-tertiary);
 }
 
 .cd-post-card.pinned {
@@ -577,10 +577,10 @@
 .cd-post-type-tag {
     font-size: 0.68rem;
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--glass-bg);
     border-radius: 10px;
     padding: 2px 7px;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .cd-post-time {
@@ -619,8 +619,8 @@
 }
 
 .cd-like-btn {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     color: var(--text-muted);
     border-radius: 20px;
     padding: 4px 12px;
@@ -636,7 +636,7 @@
 }
 
 .cd-post-action-btn {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--glass-bg);
     border: none;
     color: var(--text-muted);
     border-radius: 8px;
@@ -648,8 +648,8 @@
 }
 
 .cd-post-action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #e2e8f0;
+    background: var(--bg-tertiary);
+    color: var(--text-main);
 }
 
 .cd-post-del:hover {
@@ -669,14 +669,14 @@
     align-items: center;
     gap: 14px;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     border-radius: 14px;
     transition: background 0.15s;
 }
 
 .cd-event-card:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-tertiary);
 }
 
 .cd-event-card.past {

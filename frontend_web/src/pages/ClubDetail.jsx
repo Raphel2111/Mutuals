@@ -237,7 +237,7 @@ export default function ClubDetail({ clubId, onBack }) {
                         <div className="cd-empty">
                             <p style={{ fontSize: 36, margin: '0 0 10px' }}>📭</p>
                             <p>Aún no hay posts en este club.</p>
-                            {canPost && <p style={{ fontSize: '0.8rem', color: '#475569' }}>Sé el primero en publicar algo arriba ↑</p>}
+                            {canPost && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sé el primero en publicar algo arriba ↑</p>}
                         </div>
                     )}
                     {canSee && posts.map(post => (
@@ -268,7 +268,7 @@ export default function ClubDetail({ clubId, onBack }) {
                         <div className="cd-empty">
                             <p style={{ fontSize: 36, margin: '0 0 10px' }}>💬</p>
                             <p>Aún no hay mensajes en la comunidad.</p>
-                            <p style={{ fontSize: '0.8rem', color: '#475569' }}>Sé el primero en saludar ↑</p>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sé el primero en saludar ↑</p>
                         </div>
                     )}
                     {canSee && wallPosts.map(post => (
@@ -308,7 +308,7 @@ export default function ClubDetail({ clubId, onBack }) {
                             <AddMemberAction clubId={clubId} onAdded={load} flash={flash} />
                         </div>
                     )}
-                    {members.length === 0 && <p style={{ color: '#64748b', textAlign: 'center', padding: '32px 0' }}>Aún no hay miembros aprobados.</p>}
+                    {members.length === 0 && <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '32px 0' }}>Aún no hay miembros aprobados.</p>}
                     {members.map(m => {
                         const isSelf = m.user_id === currentUser?.id;
                         return (
@@ -351,7 +351,7 @@ export default function ClubDetail({ clubId, onBack }) {
             {/* ── SOLICITUDES ── */}
             {tab === 'solicitudes' && club.is_admin && (
                 <div className="cd-pending-list">
-                    {pending.length === 0 && <p style={{ color: '#64748b', textAlign: 'center', padding: '32px 0' }}>No hay solicitudes pendientes.</p>}
+                    {pending.length === 0 && <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '32px 0' }}>No hay solicitudes pendientes.</p>}
                     {pending.map(p => (
                         <div key={p.id} className="cd-pending-card">
                             <div className="cd-pending-header">
@@ -359,8 +359,8 @@ export default function ClubDetail({ clubId, onBack }) {
                                     <span>{(p.full_name || p.username).slice(0, 2).toUpperCase()}</span>
                                 </div>
                                 <div>
-                                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#e2e8f0' }}>{p.full_name || p.username}</p>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>@{p.username} · {new Date(p.requested_at).toLocaleDateString('es-ES')}</p>
+                                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{p.full_name || p.username}</p>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>@{p.username} · {new Date(p.requested_at).toLocaleDateString('es-ES')}</p>
                                 </div>
                                 <div className="cd-pending-actions">
                                     <button className="cd-btn-approve" onClick={() => handleApprove(p.id)}>✓ Aprobar</button>
@@ -605,7 +605,7 @@ function CreateClubEventBox({ clubId, onCreated }) {
 
     return (
         <div className="cd-create-post" style={{ marginBottom: 14 }}>
-            <h4 style={{ margin: '0 0 12px', color: '#e2e8f0', fontSize: '0.95rem' }}>📅 Planificar Evento Exclusivo</h4>
+            <h4 style={{ margin: '0 0 12px', color: 'var(--text-main)', fontSize: '0.95rem' }}>📅 Planificar Evento Exclusivo</h4>
             <input className="cd-input" placeholder="Nombre del evento *" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} style={{ marginBottom: 8 }} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                 <input className="cd-input" type="datetime-local" value={f.date} onChange={e => setF({ ...f, date: e.target.value })} />
@@ -615,7 +615,7 @@ function CreateClubEventBox({ clubId, onCreated }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <label className="cd-label" style={{ margin: 0 }}>Precio (€):</label>
                 <input className="cd-input" type="number" min="0" step="0.5" value={f.price} onChange={e => setF({ ...f, price: e.target.value })} style={{ width: 100 }} />
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>0 = Gratis</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>0 = Gratis</span>
             </div>
             <div className="cd-post-footer" style={{ marginTop: 0 }}>
                 <span />
@@ -760,18 +760,18 @@ function ManageInvitations({ clubId, invitations, onUpdate, flash }) {
     return (
         <div className="cd-invites">
             <h3 className="cd-settings-title">🎟️ Gestión de Invitaciones</h3>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
                 Crea enlaces únicos para que otros se unan al club saltándose la aprobación manual.
             </p>
 
-            <div className="cd-create-invite-box" style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
+            <div className="cd-create-invite-box" style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)', marginBottom: 20 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', marginBottom: 4 }}>Días de validez</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>Días de validez</label>
                         <input className="cd-input" type="number" value={days} onChange={e => setDays(e.target.value)} min="1" max="365" />
                     </div>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', marginBottom: 4 }}>Usos máx.</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>Usos máx.</label>
                         <input className="cd-input" type="number" value={maxUses} onChange={e => setMaxUses(e.target.value)} placeholder="∞ ilimitado" />
                     </div>
                 </div>
@@ -781,12 +781,12 @@ function ManageInvitations({ clubId, invitations, onUpdate, flash }) {
             </div>
 
             <div className="cd-invites-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {invitations.length === 0 && <p style={{ textAlign: 'center', color: '#64748b', padding: '20px 0' }}>No hay enlaces activos.</p>}
+                {invitations.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px 0' }}>No hay enlaces activos.</p>}
                 {invitations.map(inv => (
-                    <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--glass-bg)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-color)' }}>
                         <div className="cd-invite-info">
-                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#e2e8f0' }}>Token: {inv.token.slice(0, 6)}...{inv.token.slice(-4)}</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
+                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Token: {inv.token.slice(0, 6)}...{inv.token.slice(-4)}</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                 {inv.use_count} usos {inv.max_uses ? `/ ${inv.max_uses}` : ''} · Expira {new Date(inv.expires_at).toLocaleDateString()}
                             </p>
                         </div>
@@ -826,7 +826,7 @@ function AddMemberAction({ clubId, onAdded, flash }) {
                 placeholder="Añadir miembro por username..."
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                style={{ flex: 1, padding: '0 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.9rem' }}
+                style={{ flex: 1, padding: '0 12px', background: 'var(--glass-bg)', borderRadius: 8, border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.9rem' }}
             />
             <button className="cd-btn-save" type="submit" disabled={loading} style={{ width: 'auto', padding: '0 20px', fontSize: '0.85rem' }}>
                 {loading ? '...' : 'Añadir'}

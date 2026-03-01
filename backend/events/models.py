@@ -114,6 +114,7 @@ class ClubWallPost(models.Model):
     club       = models.ForeignKey('Club', on_delete=models.CASCADE, related_name='wall_posts')
     author     = models.ForeignKey(User, on_delete=models.CASCADE)
     content    = models.TextField()
+    reply_to   = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replies')
     likes      = models.ManyToManyField(User, related_name='liked_wall_posts', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

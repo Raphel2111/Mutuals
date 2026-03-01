@@ -1368,7 +1368,14 @@ class ClubViewSet(viewsets.ModelViewSet):
         if not (is_admin or is_member):
             return Response([])
         from events.views_clubs import ClubWallPostSerializer
-        qs = club.wall_posts.all()
+        qs = club.wall_posts.select_related('author', 'reply_to', 'reply_to__author').all()
+        # Support incremental polling: ?since=<last_id>
+        since_id = request.query_params.get('since')
+        if since_id:
+            try:
+                qs = qs.filter(id__gt=int(since_id))
+            except (ValueError, TypeError):
+                pass
         return Response(ClubWallPostSerializer(qs, many=True, context={'request': request}).data)
 
     @action(detail=True, methods=['post'], url_path='create_invitation', permission_classes=[permissions.IsAuthenticated])

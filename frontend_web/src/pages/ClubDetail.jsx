@@ -252,7 +252,7 @@ export default function ClubDetail({ clubId, onBack }) {
                 </div>
             )}
 
-            {/* ── COMUNIDAD (MURO) ── */}
+            {/* ── COMUNIDAD (CHAT DINÁMICO) ── */}
             {tab === 'comunidad' && (
                 <div className="cd-feed">
                     {!canSee && (
@@ -263,26 +263,16 @@ export default function ClubDetail({ clubId, onBack }) {
                             </button>
                         </div>
                     )}
-                    {canSee && <CreateWallPostBox clubId={clubId} onCreated={load} />}
-                    {canSee && wallPosts.length === 0 && (
-                        <div className="cd-empty">
-                            <p style={{ fontSize: 36, margin: '0 0 10px' }}>💬</p>
-                            <p>Aún no hay mensajes en la comunidad.</p>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sé el primero en saludar ↑</p>
-                        </div>
-                    )}
-                    {canSee && wallPosts.map(post => (
-                        <ClubWallPostCard
-                            key={post.id}
-                            post={post}
-                            userId={currentUser?.id}
+                    {canSee && (
+                        <CommunityChat
+                            clubId={clubId}
+                            currentUser={currentUser}
                             isAdmin={club.is_admin}
-                            onDelete={async () => {
-                                await axios.delete(`club-wall-posts/${post.id}/`);
-                                load();
-                            }}
+                            members={members}
+                            wallPosts={wallPosts}
+                            setWallPosts={setWallPosts}
                         />
-                    ))}
+                    )}
                 </div>
             )}
 
@@ -737,106 +727,263 @@ function CreateClubEventBox({ clubId, onCreated }) {
     );
 }
 
-// ── Create Wall Post Box (Comunidad) ─────────────────────────────────────────
-function CreateWallPostBox({ clubId, onCreated }) {
-    const [expanded, setExpanded] = useState(false);
-    const [loading, setLoading] = useState(false);
+// ── Community Chat (dynamic, with replies + @mentions) ───────────────────────
+function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWallPosts }) {
     const [content, setContent] = useState('');
+    const [replyTo, setReplyTo] = useState(null);   // post object
+    const [loading, setLoading] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState(null); // string | null
+    const [mentionIdx, setMentionIdx] = useState(0);
+    const chatEndRef = useRef(null);
+    const inputRef = useRef(null);
+    const pollingRef = useRef(null);
 
+    // ── Auto-polling every 5s ──
+    useEffect(() => {
+        pollingRef.current = setInterval(async () => {
+            try {
+                const lastId = wallPosts.length > 0 ? Math.max(...wallPosts.map(p => p.id)) : 0;
+                const res = await axios.get(`clubs/${clubId}/wall/?since=${lastId}`);
+                const newPosts = res.data || [];
+                if (newPosts.length > 0) {
+                    setWallPosts(prev => {
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const unique = newPosts.filter(p => !existingIds.has(p.id));
+                        if (unique.length === 0) return prev;
+                        return [...unique, ...prev];
+                    });
+                }
+            } catch (e) { /* silent */ }
+        }, 5000);
+        return () => clearInterval(pollingRef.current);
+    }, [clubId, wallPosts]);
+
+    // ── Auto-scroll when new messages added ──
+    useEffect(() => {
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [wallPosts.length]);
+
+    // ── Submit message ──
     const submit = async () => {
         if (!content.trim()) return;
         setLoading(true);
         try {
-            await axios.post('club-wall-posts/', { club: clubId, content });
+            const payload = { club: clubId, content };
+            if (replyTo) payload.reply_to_id = replyTo.id;
+            const res = await axios.post('club-wall-posts/', payload);
+            setWallPosts(prev => [res.data, ...prev]);
             setContent('');
-            setExpanded(false);
-            onCreated();
+            setReplyTo(null);
         } catch (e) {
-            alert('Error al publicar: ' + (e.response?.data?.detail || e.message));
+            alert('Error: ' + (e.response?.data?.detail || e.message));
         } finally {
             setLoading(false);
         }
     };
 
-    if (!expanded) {
-        return (
-            <div className="cd-create-post" style={{ marginBottom: 14 }}>
-                <div className="cd-create-placeholder" onClick={() => setExpanded(true)}>
-                    <span>💬 Escribe algo para la comunidad…</span>
-                </div>
-            </div>
-        );
-    }
+    // ── Delete message ──
+    const handleDelete = async (postId) => {
+        try {
+            await axios.delete(`club-wall-posts/${postId}/`);
+            setWallPosts(prev => prev.filter(p => p.id !== postId));
+        } catch (e) { console.error(e); }
+    };
+
+    // ── @mention handling ──
+    const memberList = (members || []).map(m => ({
+        id: m.user_id || m.id,
+        username: m.username || m.user_name || '',
+        name: m.display_name || m.user_name || m.username || '',
+    })).filter(m => m.username);
+
+    const mentionCandidates = mentionQuery !== null
+        ? memberList.filter(m =>
+            m.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+            m.name.toLowerCase().includes(mentionQuery.toLowerCase())
+        ).slice(0, 6)
+        : [];
+
+    const handleInput = (e) => {
+        const val = e.target.value;
+        setContent(val);
+
+        // Detect @mention trigger
+        const cursor = e.target.selectionStart;
+        const textBefore = val.slice(0, cursor);
+        const atMatch = textBefore.match(/@(\w*)$/);
+        if (atMatch) {
+            setMentionQuery(atMatch[1]);
+            setMentionIdx(0);
+        } else {
+            setMentionQuery(null);
+        }
+    };
+
+    const insertMention = (username) => {
+        const cursor = inputRef.current?.selectionStart || content.length;
+        const textBefore = content.slice(0, cursor);
+        const textAfter = content.slice(cursor);
+        const newBefore = textBefore.replace(/@\w*$/, `@${username} `);
+        setContent(newBefore + textAfter);
+        setMentionQuery(null);
+        inputRef.current?.focus();
+    };
+
+    const handleKeyDown = (e) => {
+        if (mentionQuery !== null && mentionCandidates.length > 0) {
+            if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => Math.min(i + 1, mentionCandidates.length - 1)); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => Math.max(i - 1, 0)); }
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                insertMention(mentionCandidates[mentionIdx].username);
+                return;
+            }
+            if (e.key === 'Escape') { setMentionQuery(null); return; }
+        }
+        if (e.key === 'Enter' && !e.shiftKey && mentionQuery === null) {
+            e.preventDefault();
+            submit();
+        }
+    };
+
+    // ── Render content with @mentions highlighted ──
+    const renderContent = (text) => {
+        if (!text) return null;
+        const parts = text.split(/(@\w+)/g);
+        return parts.map((part, i) => {
+            if (part.startsWith('@')) {
+                return <span key={i} className="chat-mention">{part}</span>;
+            }
+            return part;
+        });
+    };
+
+    const timeAgo = (dateStr) => {
+        const diff = (Date.now() - new Date(dateStr)) / 1000;
+        if (diff < 60) return 'Ahora';
+        if (diff < 3600) return `${Math.round(diff / 60)}m`;
+        if (diff < 86400) return `${Math.round(diff / 3600)}h`;
+        return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    };
+
+    // Show messages in chronological order (oldest first)
+    const sortedPosts = [...wallPosts].reverse();
 
     return (
-        <div className="cd-create-post" style={{ marginBottom: 14 }}>
-            <textarea className="cd-input cd-textarea" placeholder="¿Qué quieres compartir con el club?…" rows={3} value={content} onChange={e => setContent(e.target.value)} style={{ marginBottom: 8 }} />
-            <div className="cd-post-footer" style={{ marginTop: 0 }}>
-                <span />
-                <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="cd-btn-cancel" onClick={() => setExpanded(false)}>Cancelar</button>
-                    <button className="cd-btn-save btn-shimmer" disabled={loading || !content.trim()} onClick={submit}>
-                        {loading ? 'Publicando…' : 'Publicar →'}
-                    </button>
+        <div className="chat-container">
+            {/* Messages */}
+            <div className="chat-messages">
+                {sortedPosts.length === 0 && (
+                    <div className="cd-empty">
+                        <p style={{ fontSize: 36, margin: '0 0 10px' }}>💬</p>
+                        <p>Aún no hay mensajes en la comunidad.</p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sé el primero en saludar ↓</p>
+                    </div>
+                )}
+                {sortedPosts.map(post => {
+                    const isOwn = post.author_id === currentUser?.id;
+                    const canDelete = isOwn || isAdmin;
+                    return (
+                        <div key={post.id} className={`chat-message ${isOwn ? 'own' : ''}`}>
+                            <div className="chat-msg-avatar">
+                                {post.author_avatar
+                                    ? <img src={post.author_avatar} alt={post.author_name} />
+                                    : <span>{(post.author_name || 'A').slice(0, 2).toUpperCase()}</span>}
+                            </div>
+                            <div className="chat-msg-body">
+                                <div className="chat-msg-header">
+                                    <span className="chat-msg-author">{post.author_name}</span>
+                                    <span className="chat-msg-time">{timeAgo(post.created_at)}</span>
+                                </div>
+                                {/* Reply preview */}
+                                {post.reply_preview && (
+                                    <div className="chat-reply-preview">
+                                        <span className="chat-reply-bar" />
+                                        <div>
+                                            <span className="chat-reply-author">{post.reply_preview.author_name}</span>
+                                            <span className="chat-reply-text">{post.reply_preview.content}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                <p className="chat-msg-content">{renderContent(post.content)}</p>
+                                <div className="chat-msg-actions">
+                                    <ChatLikeBtn post={post} />
+                                    <button className="chat-action-btn" onClick={() => { setReplyTo(post); inputRef.current?.focus(); }}>
+                                        ↩️ Responder
+                                    </button>
+                                    {canDelete && (
+                                        <button className="chat-action-btn chat-del-btn" onClick={() => handleDelete(post.id)}>
+                                            🗑️
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+                <div ref={chatEndRef} />
+            </div>
+
+            {/* Reply banner */}
+            {replyTo && (
+                <div className="chat-reply-banner">
+                    <div className="chat-reply-banner-content">
+                        <span>↩️ Respondiendo a <strong>{replyTo.author_name}</strong></span>
+                        <span className="chat-reply-banner-text">"{(replyTo.content || '').slice(0, 50)}{(replyTo.content || '').length > 50 ? '…' : ''}"</span>
+                    </div>
+                    <button className="chat-reply-banner-close" onClick={() => setReplyTo(null)}>✕</button>
                 </div>
+            )}
+
+            {/* Compose area */}
+            <div className="chat-compose">
+                {/* @mention dropdown */}
+                {mentionQuery !== null && mentionCandidates.length > 0 && (
+                    <div className="chat-mention-dropdown">
+                        {mentionCandidates.map((m, i) => (
+                            <div key={m.id}
+                                className={`chat-mention-item ${i === mentionIdx ? 'active' : ''}`}
+                                onMouseDown={(e) => { e.preventDefault(); insertMention(m.username); }}>
+                                <span className="chat-mention-name">@{m.username}</span>
+                                {m.name !== m.username && <span className="chat-mention-full">{m.name}</span>}
+                            </div>
+                        ))}
+                    </div>
+                )}
+                <textarea
+                    ref={inputRef}
+                    className="chat-input"
+                    placeholder="Escribe un mensaje... (@ para mencionar)"
+                    value={content}
+                    onChange={handleInput}
+                    onKeyDown={handleKeyDown}
+                    rows={1}
+                />
+                <button className="chat-send-btn" onClick={submit} disabled={loading || !content.trim()}>
+                    {loading ? '…' : '➤'}
+                </button>
             </div>
         </div>
     );
 }
 
-// ── Wall Post Card (Comunidad) ───────────────────────────────────────────────
-function ClubWallPostCard({ post, userId, isAdmin, onDelete }) {
+// ── Like button sub-component ────────────────────────────────────────────────
+function ChatLikeBtn({ post }) {
     const [liked, setLiked] = useState(post.user_liked);
     const [count, setCount] = useState(post.like_count);
-
-    const toggleLike = async () => {
+    const toggle = async () => {
         try {
             const res = await axios.post(`club-wall-posts/${post.id}/like/`);
             setLiked(res.data.liked);
             setCount(res.data.like_count);
         } catch (e) { console.error(e); }
     };
-
-    const timeAgo = (dateStr) => {
-        const diff = (Date.now() - new Date(dateStr)) / 1000;
-        if (diff < 60) return 'Ahora mismo';
-        if (diff < 3600) return `${Math.round(diff / 60)}m`;
-        if (diff < 86400) return `${Math.round(diff / 3600)}h`;
-        return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-    };
-
-    // The backend serializers could return author_id to cleanly compare it,
-    // but without an author_id field on ClubWallPostSerializer, 
-    // we use isAdmin to show delete for everyone who is admin.
-    // Assuming backend returns an author ID would be better, but we only have author_name.
-    // As a shortcut for this demo, we'll just allow deletion if isAdmin. 
-    // (If user tries to delete via API and is author, it will work, but UI won't show button unless admin)
-    // Actually, I can update the backend to just add 'author' to the fields. 
-    // For now, if the user sees the button, they can click it.
-
     return (
-        <div className="cd-post-card">
-            <div className="cd-post-header">
-                <div className="cd-member-avatar" style={{ width: 34, height: 34, fontSize: '0.8rem' }}>
-                    {post.author_avatar ? <img src={post.author_avatar} alt={post.author_name} /> : <span>{(post.author_name || 'A').slice(0, 2).toUpperCase()}</span>}
-                </div>
-                <div>
-                    <p className="cd-post-author">{post.author_name}</p>
-                    <p className="cd-post-time">{timeAgo(post.created_at)}</p>
-                </div>
-                {isAdmin && (
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                        <button className="cd-post-action-btn cd-post-del" onClick={onDelete} title="Eliminar Mensaje">✕</button>
-                    </div>
-                )}
-            </div>
-            <p className="cd-post-content" style={{ marginTop: 0 }}>{post.content}</p>
-            <div className="cd-post-footer-row">
-                <button className={`cd-like-btn ${liked ? 'liked' : ''}`} onClick={toggleLike}>
-                    {liked ? '❤️' : '🤍'} {count}
-                </button>
-            </div>
-        </div>
+        <button className={`chat-action-btn ${liked ? 'liked' : ''}`} onClick={toggle}>
+            {liked ? '❤️' : '🤍'} {count > 0 ? count : ''}
+        </button>
     );
 }
 

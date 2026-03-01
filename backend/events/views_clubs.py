@@ -124,18 +124,29 @@ class ClubPostViewSet(viewsets.ModelViewSet):
 # ── Community Wall ────────────────────────────────────────────────────────────
 
 class ClubWallPostSerializer(serializers.ModelSerializer):
+    author_id     = serializers.IntegerField(source='author.id', read_only=True)
     author_name   = serializers.SerializerMethodField()
     author_avatar = serializers.SerializerMethodField()
     like_count    = serializers.SerializerMethodField()
     user_liked    = serializers.SerializerMethodField()
+    reply_to_id   = serializers.PrimaryKeyRelatedField(
+        source='reply_to', queryset=ClubWallPost.objects.all(),
+        required=False, allow_null=True
+    )
+    reply_preview = serializers.SerializerMethodField()
 
     class Meta:
         model  = ClubWallPost
         fields = [
-            'id', 'club', 'author_name', 'author_avatar', 'content',
+            'id', 'club', 'author_id', 'author_name', 'author_avatar',
+            'content', 'reply_to_id', 'reply_preview',
             'like_count', 'user_liked', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['author_name', 'author_avatar', 'like_count', 'user_liked', 'created_at', 'updated_at']
+        read_only_fields = [
+            'author_id', 'author_name', 'author_avatar',
+            'like_count', 'user_liked', 'reply_preview',
+            'created_at', 'updated_at',
+        ]
 
     def get_author_name(self, obj):
         return obj.author.get_full_name() or obj.author.username
@@ -157,6 +168,16 @@ class ClubWallPostSerializer(serializers.ModelSerializer):
             return obj.likes.filter(pk=request.user.pk).exists()
         return False
 
+    def get_reply_preview(self, obj):
+        if not obj.reply_to:
+            return None
+        parent = obj.reply_to
+        return {
+            'id': parent.id,
+            'author_name': parent.author.get_full_name() or parent.author.username,
+            'content': parent.content[:80] + ('…' if len(parent.content) > 80 else ''),
+        }
+
 
 class ClubWallPostViewSet(viewsets.ModelViewSet):
     """
@@ -173,7 +194,7 @@ class ClubWallPostViewSet(viewsets.ModelViewSet):
         return ClubWallPost.objects.filter(
             dj_models.Q(club__admins=user) |
             dj_models.Q(club__memberships__user=user, club__memberships__status='approved')
-        ).distinct()
+        ).select_related('author', 'reply_to', 'reply_to__author').distinct()
 
     def perform_create(self, serializer):
         club_id = self.request.data.get('club')
@@ -181,14 +202,14 @@ class ClubWallPostViewSet(viewsets.ModelViewSet):
             club = Club.objects.get(pk=club_id)
         except Club.DoesNotExist:
             raise serializers.ValidationError({'club': 'Club no encontrado.'})
-        
+
         is_admin = club.admins.filter(pk=self.request.user.pk).exists()
         is_member = club.memberships.filter(user=self.request.user, status='approved').exists()
-        
+
         if not (is_admin or is_member) and not self.request.user.is_staff:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Solo los miembros pueden publicar en la comunidad.')
-        
+
         serializer.save(author=self.request.user)
 
     def destroy(self, request, *args, **kwargs):
@@ -209,3 +230,4 @@ class ClubWallPostViewSet(viewsets.ModelViewSet):
             post.likes.add(request.user)
             liked = True
         return Response({'liked': liked, 'like_count': post.likes.count()})
+

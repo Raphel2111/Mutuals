@@ -40,15 +40,15 @@ function ProfileCompletionModal({ user, onComplete }) {
             zIndex: 9999
         }}>
             <div style={{
-                backgroundColor: 'white', padding: '30px', borderRadius: '10px',
+                backgroundColor: 'var(--bg-card, var(--glass-bg))', padding: '30px', borderRadius: '10px',
                 maxWidth: '400px', width: '90%', textAlign: 'center'
             }}>
                 <h2 style={{ marginBottom: '10px' }}>Completa tu Perfil</h2>
-                <p style={{ color: '#666', marginBottom: '20px' }}>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
                     Para poder inscribirte en eventos, necesitamos saber tu nombre y apellidos.
                 </p>
 
-                {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
+                {error && <div style={{ color: 'var(--danger, #ef4444)', marginBottom: '10px' }}>{error}</div>}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <div>

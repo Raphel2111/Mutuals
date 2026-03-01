@@ -31,7 +31,7 @@ function DynamicQR({ registrationId, entryCode }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <div style={{
-                background: '#fff', borderRadius: 16, padding: 20,
+                background: 'var(--bg-card, var(--glass-bg))', borderRadius: 16, padding: 20,
                 boxShadow: '0 4px 20px rgba(0,0,0,0.5) inset'
             }}>
                 <img
@@ -41,14 +41,14 @@ function DynamicQR({ registrationId, entryCode }) {
                 />
             </div>
             <div style={{
-                fontSize: '0.72rem', color: countdown < 8 ? '#f59e0b' : '#64748b',
+                fontSize: '0.72rem', color: countdown < 8 ? 'var(--warning, #f59e0b)' : 'var(--text-muted)',
                 display: 'flex', alignItems: 'center', gap: 5
             }}>
                 <span style={{
-                    width: 6, height: 6, borderRadius: '50%', background: '#22c55e',
-                    boxShadow: '0 0 6px #22c55e', display: 'inline-block'
+                    width: 6, height: 6, borderRadius: '50%', background: 'var(--success, #22c55e)',
+                    boxShadow: '0 0 6px var(--success, #22c55e)', display: 'inline-block'
                 }} />
-                QR dinámico — se renueva en <strong style={{ color: '#e2e8f0' }}>{countdown}s</strong>
+                QR dinámico — se renueva en <strong style={{ color: 'var(--text-main)' }}>{countdown}s</strong>
             </div>
         </div>
     );

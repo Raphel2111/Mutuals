@@ -23,15 +23,15 @@ export default function Login({ onLogin, onShowRegister }) {
         const trimmedPassword = password.trim();
 
         try {
-            console.log('Intentando login con:', { username: trimmedUsername });
+
             const res = await axios.post(backendBase + '/api/token/', {
                 username: trimmedUsername,
                 password: trimmedPassword
             });
-            console.log('Login exitoso, tokens recibidos');
+
             localStorage.setItem('access_token', res.data.access);
             localStorage.setItem('refresh_token', res.data.refresh);
-            console.log('Tokens guardados, llamando onLogin callback');
+
             if (onLogin) {
                 onLogin();
             }

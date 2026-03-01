@@ -211,7 +211,7 @@ export default function ClubDetail({ clubId, onBack }) {
                                 </div>
                                 {myToken ? (
                                     <div className="cd-mini-qr-wrap" onClick={() => window.open(myToken.qr_url, '_blank')}>
-                                        <img src={myToken.qr_url} alt="QR" style={{ width: 50, height: 50, borderRadius: 4, background: '#fff' }} />
+                                        <img src={myToken.qr_url} alt="QR" style={{ width: 50, height: 50, borderRadius: 4, background: 'var(--bg-card, var(--glass-bg))' }} />
                                     </div>
                                 ) : (
                                     <button className="cd-btn-approve" onClick={handleGenerateToken} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>

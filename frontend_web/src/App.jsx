@@ -32,35 +32,13 @@ function App() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [socialProfileId, setSocialProfileId] = useState(null);
     const [lobbyEvent, setLobbyEvent] = useState(null);
-    const [radarFilter, setRadarFilter] = useState(null); // Nuevo: filtro por tag para el radar  // target user for SocialProfile view
+    const [radarFilter, setRadarFilter] = useState(null); // filter by tag for radar
+    const [radarClubId, setRadarClubId] = useState(null); // club to open from Radar
 
     // Check if user needs to complete profile
     const needsProfileCompletion = authenticated && currentUser && (!currentUser.first_name || !currentUser.last_name);
 
-    // Escuchar evento de email no verificado
-    // Escuchar evento de email no verificado
-    /*
-    useEffect(() => {
-        const handleEmailNotVerified = (event) => {
-                    setEmailNotVerifiedAlert(true);
-                setView('profile'); // Redirigir al perfil para verificación
-        };
 
-                window.addEventListener('email-not-verified', handleEmailNotVerified);
-        return () => window.removeEventListener('email-not-verified', handleEmailNotVerified);
-    }, []);
-                */
-
-    // Verificar automáticamente al cargar usuario si no está verificado
-    // Verificar automáticamente al cargar usuario si no está verificado
-    /*
-    useEffect(() => {
-        if (currentUser && !currentUser.email_verified && authenticated) {
-                    setView('profile'); // Abrir automáticamente el perfil
-                setEmailNotVerifiedAlert(true);
-        }
-    }, [currentUser, authenticated]);
-                */
 
     // Handle URL hash routing for invitations and OAuth
     useEffect(() => {
@@ -88,7 +66,6 @@ function App() {
                 fetchCurrentUser()
                     .then(user => {
                         setCurrentUser(user);
-                        console.log('OAuth login successful:', user);
                     })
                     .catch(err => {
                         console.error('Error fetching user after OAuth:', err);
@@ -273,13 +250,14 @@ function App() {
                         )}
 
                         {view === 'clubs' && authenticated && (
-                            <ErrorBoundary><ClubList /></ErrorBoundary>
+                            <ErrorBoundary><ClubList preselectedClubId={radarClubId} /></ErrorBoundary>
                         )}
                         {view === 'radar' && authenticated && (
                             <ErrorBoundary>
                                 <SocialRadar
-                                    onOpenClub={(clubId) => { /* TODO: navigate to club */ }}
-                                    onOpenProfile={(userId) => { /* TODO: navigate to profile */ }}
+                                    initialFilter={radarFilter}
+                                    onOpenClub={(clubId) => { setRadarClubId(clubId); setView('clubs'); }}
+                                    onOpenProfile={(userId) => { setSocialProfileId(userId); setView('social-profile'); }}
                                 />
                             </ErrorBoundary>
                         )}

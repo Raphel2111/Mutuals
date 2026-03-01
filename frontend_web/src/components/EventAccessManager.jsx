@@ -115,7 +115,7 @@ export default function EventAccessManager({ event, currentUser }) {
     const attendedList = registrations.filter(r => r.attended_at);
 
     return (
-        <div style={{ marginTop: 20, padding: 20, backgroundColor: 'white', borderRadius: 8, boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
+        <div style={{ marginTop: 20, padding: 20, backgroundColor: 'var(--bg-card, var(--glass-bg))', borderRadius: 8, boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
             <h3 style={{ marginTop: 0 }}>🛡️ Gestión de Accesos y QR</h3>
 
             {/* TABS */}
@@ -181,7 +181,7 @@ export default function EventAccessManager({ event, currentUser }) {
                         {searchResults.length > 0 && (
                             <ul style={{
                                 listStyle: 'none', padding: 0, margin: 0, border: '1px solid #ddd',
-                                maxHeight: 150, overflowY: 'auto', backgroundColor: 'white', position: 'absolute', width: '300px', zIndex: 10
+                                maxHeight: 150, overflowY: 'auto', backgroundColor: 'var(--bg-card, var(--glass-bg))', position: 'absolute', width: '300px', zIndex: 10
                             }}>
                                 {searchResults.map(u => (
                                     <li key={u.id}

@@ -8,7 +8,7 @@ const CATEGORY_ICONS = {
     'Tech': '💻', 'Social': '🤝', 'General': '📌',
 };
 
-export default function SocialRadar({ onOpenClub, onOpenProfile }) {
+export default function SocialRadar({ onOpenClub, onOpenProfile, initialFilter }) {
     const [user, setUser] = useState(null);
     const [allTags, setAllTags] = useState([]);
     const [myTagIds, setMyTagIds] = useState(new Set());
@@ -23,6 +23,14 @@ export default function SocialRadar({ onOpenClub, onOpenProfile }) {
     const [creating, setCreating] = useState(false);
 
     useEffect(() => { loadAll(); }, []);
+
+    // Auto-fill search if opened via interest click
+    useEffect(() => {
+        if (initialFilter) {
+            setTagSearch(initialFilter);
+            setTab('interests');
+        }
+    }, [initialFilter]);
 
     const loadAll = async () => {
         setLoading(true);

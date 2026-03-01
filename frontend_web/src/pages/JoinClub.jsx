@@ -33,7 +33,7 @@ export default function JoinClub({ token, onSuccess, onCancel }) {
             onSuccess && onSuccess();
         } catch (err) {
             console.error('Error joining club:', err);
-            alert(err.response?.data?.detail || 'Failed to join club.');
+            alert(err.response?.data?.detail || 'Error al unirse al club.');
         } finally {
             setJoining(false);
         }

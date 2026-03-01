@@ -354,13 +354,13 @@ export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }
                         </div>
 
                         {showAddAdmin && (
-                            <div style={{ marginBottom: 12, padding: 8, backgroundColor: 'white', borderRadius: 4 }}>
+                            <div style={{ marginBottom: 12, padding: 8, backgroundColor: 'var(--bg-card, var(--glass-bg))', borderRadius: 4 }}>
                                 <input
                                     type="email"
                                     placeholder="Email del usuario"
                                     value={newAdminEmail}
                                     onChange={(e) => setNewAdminEmail(e.target.value)}
-                                    style={{ marginRight: 8, padding: '6px 10px', borderRadius: 4, border: '1px solid #ddd', flex: 1 }}
+                                    style={{ marginRight: 8, padding: '6px 10px', borderRadius: 4, border: '1px solid var(--border-color)', flex: 1 }}
                                 />
                                 <button className="btn" onClick={addAdmin} style={{ fontSize: '12px', padding: '6px 12px' }}>
                                     Agregar
@@ -375,7 +375,7 @@ export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }
                                     alignItems: 'center',
                                     gap: 6,
                                     padding: '6px 12px',
-                                    backgroundColor: 'white',
+                                    backgroundColor: 'var(--bg-card, var(--glass-bg))',
                                     borderRadius: 4,
                                     fontSize: '13px'
                                 }}>

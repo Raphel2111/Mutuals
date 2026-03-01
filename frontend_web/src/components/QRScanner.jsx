@@ -159,7 +159,7 @@ export default function QRScanner({ eventId, onBack }) {
                     <div style={{
                         marginTop: 20,
                         padding: 12,
-                        background: '#fee',
+                        background: 'var(--glass-bg)',
                         border: '1px solid var(--danger)',
                         borderRadius: 8,
                         color: 'var(--danger)'

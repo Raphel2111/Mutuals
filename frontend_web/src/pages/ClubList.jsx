@@ -13,7 +13,7 @@ const FILTERS = [
     { key: 'private', label: '🔒 Privados' },
 ];
 
-export default function ClubList() {
+export default function ClubList({ preselectedClubId }) {
     const [clubs, setClubs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -35,6 +35,11 @@ export default function ClubList() {
     };
 
     useEffect(() => { loadClubs(); }, []);
+
+    // If a preselected club is passed from Radar, open it directly
+    useEffect(() => {
+        if (preselectedClubId) setSelectedClub(preselectedClubId);
+    }, [preselectedClubId]);
 
     // ── If club detail selected, render it ──
     if (selectedClub) {
@@ -220,12 +225,12 @@ function ClubCard({ club, onJoin, onOpen }) {
 
                 {club.my_membership_status === 'approved' ? (
                     <button className="btn btn-shimmer full-width" onClick={(e) => { e.stopPropagation(); onOpen && onOpen(); }}
-                        style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none' }}>
+                        style={{ background: 'var(--accent-gradient)', color: 'var(--text-on-accent, #fff)', border: 'none' }}>
                         Entrar al club →
                     </button>
                 ) : club.my_membership_status === 'approved_pending_payment' ? (
                     <button className="btn btn-shimmer full-width" onClick={(e) => { e.stopPropagation(); onJoin && onJoin(); }}
-                        style={{ background: 'linear-gradient(135deg, #d946ef, #9333ea)', color: 'white', border: 'none' }}>
+                        style={{ background: 'var(--accent-gradient)', color: 'var(--text-on-accent, #fff)', border: 'none' }}>
                         Pagar Suscripción
                     </button>
                 ) : club.my_membership_status === 'pending' ? (
@@ -234,7 +239,7 @@ function ClubCard({ club, onJoin, onOpen }) {
                     </button>
                 ) : (
                     <button className="btn btn-shimmer full-width" onClick={(e) => { e.stopPropagation(); onJoin && onJoin(); }}
-                        style={{ background: 'linear-gradient(135deg, #d946ef, #9333ea)', color: 'white', border: 'none' }}>
+                        style={{ background: 'var(--accent-gradient)', color: 'var(--text-on-accent, #fff)', border: 'none' }}>
                         {club.is_private ? '🔒 Solicitar acceso' : '+ Unirse'}
                     </button>
                 )}

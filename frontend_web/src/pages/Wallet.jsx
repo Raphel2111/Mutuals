@@ -101,8 +101,8 @@ export default function Wallet() {
             {/* Balance Card */}
             <div className="card" style={{
                 marginBottom: '24px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
+                background: 'var(--accent-gradient)',
+                color: 'var(--text-on-accent, #fff)',
                 padding: '32px'
             }}>
                 <p style={{ margin: '0 0 8px 0', fontSize: '14px', opacity: 0.9 }}>Saldo disponible</p>
@@ -113,8 +113,8 @@ export default function Wallet() {
                     className="btn"
                     onClick={() => setShowAddFunds(!showAddFunds)}
                     style={{
-                        backgroundColor: 'white',
-                        color: '#667eea',
+                        backgroundColor: 'var(--bg-card, var(--glass-bg))',
+                        color: 'var(--primary, #667eea)',
                         fontWeight: '600',
                         border: 'none'
                     }}

@@ -661,18 +661,37 @@ class OAuthCallbackView(APIView):
         logger.info(f"OAuth callback - Redirecting to: {redirect_url[:100]}...")
         return redirect(redirect_url)
 
-class InterestTagViewSet(viewsets.ReadOnlyModelViewSet):
+class InterestTagViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows filtering and listing InterestTags.
-    Read-only for all users (authenticated). Admins can manage them via Django Admin.
+    API endpoint for listing, searching, and creating InterestTags.
+    Any authenticated user can create new tags.
     """
     queryset = InterestTag.objects.all().order_by('name')
     serializer_class = InterestTagSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         queryset = super().get_queryset()
         category = self.request.query_params.get('category')
         if category:
             queryset = queryset.filter(category=category)
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(name__icontains=search)
         return queryset
+
+    def create(self, request, *args, **kwargs):
+        """Create a new interest tag (or return existing if name matches)."""
+        name = request.data.get('name', '').strip()
+        category = request.data.get('category', 'General').strip()
+        if not name:
+            return Response({'detail': 'El nombre es obligatorio.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(name) > 50:
+            return Response({'detail': 'Máximo 50 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+        tag, created = InterestTag.objects.get_or_create(
+            name__iexact=name,
+            defaults={'name': name, 'category': category}
+        )
+        serializer = self.get_serializer(tag)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+

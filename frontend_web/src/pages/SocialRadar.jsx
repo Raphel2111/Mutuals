@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { fetchInterestTags, fetchCurrentUser, updateUserInterests, discoverClubsByInterests, discoverPeople } from '../api';
+import { fetchInterestTags, fetchCurrentUser, updateUserInterests, discoverClubsByInterests, discoverPeople, createInterestTag } from '../api';
 import './SocialRadar.css';
 
 const CATEGORY_ICONS = {
     'Arte': '🎨', 'Entretenimiento': '🎬', 'Gaming': '🎮',
     'Cultura': '📚', 'Lifestyle': '🌿', 'Deportes': '⚽',
-    'Tech': '💻', 'Social': '🤝',
+    'Tech': '💻', 'Social': '🤝', 'General': '📌',
 };
 
 export default function SocialRadar({ onOpenClub, onOpenProfile }) {
@@ -17,7 +17,10 @@ export default function SocialRadar({ onOpenClub, onOpenProfile }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeCategory, setActiveCategory] = useState('all');
-    const [tab, setTab] = useState('interests'); // interests | clubs | people
+    const [tab, setTab] = useState('interests');
+    const [tagSearch, setTagSearch] = useState('');
+    const [newTagName, setNewTagName] = useState('');
+    const [creating, setCreating] = useState(false);
 
     useEffect(() => { loadAll(); }, []);
 
@@ -34,11 +37,7 @@ export default function SocialRadar({ onOpenClub, onOpenProfile }) {
             setUser(u);
             const ids = new Set((u.interests || []).map(i => typeof i === 'object' ? i.id : i));
             setMyTagIds(ids);
-
-            // Load discovery data if user has interests
-            if (ids.size > 0) {
-                loadDiscovery();
-            }
+            if (ids.size > 0) loadDiscovery();
         } catch (err) {
             console.error('Radar load error:', err);
         } finally {
@@ -61,38 +60,60 @@ export default function SocialRadar({ onOpenClub, onOpenProfile }) {
 
     const toggleTag = async (tagId) => {
         const newIds = new Set(myTagIds);
-        if (newIds.has(tagId)) {
-            newIds.delete(tagId);
-        } else {
-            newIds.add(tagId);
-        }
+        if (newIds.has(tagId)) newIds.delete(tagId);
+        else newIds.add(tagId);
         setMyTagIds(newIds);
-
-        // Save to backend
         setSaving(true);
         try {
             await updateUserInterests(user.id, [...newIds]);
-            // Reload discovery after interest change
-            if (newIds.size > 0) {
-                loadDiscovery();
-            } else {
-                setClubs([]);
-                setPeople([]);
-            }
+            if (newIds.size > 0) loadDiscovery();
+            else { setClubs([]); setPeople([]); }
         } catch (err) {
             console.error('Error updating interests:', err);
-            // Revert on error
             setMyTagIds(myTagIds);
         } finally {
             setSaving(false);
         }
     };
 
+    const handleCreateTag = async () => {
+        const name = newTagName.trim();
+        if (!name) return;
+        setCreating(true);
+        try {
+            const res = await createInterestTag(name);
+            const newTag = res.data;
+            // Add to list if not already there
+            setAllTags(prev => {
+                if (prev.find(t => t.id === newTag.id)) return prev;
+                return [...prev, newTag];
+            });
+            // Auto-select the new tag
+            const newIds = new Set(myTagIds);
+            newIds.add(newTag.id);
+            setMyTagIds(newIds);
+            await updateUserInterests(user.id, [...newIds]);
+            setNewTagName('');
+            if (newIds.size > 0) loadDiscovery();
+        } catch (err) {
+            console.error('Error creating tag:', err);
+        } finally {
+            setCreating(false);
+        }
+    };
+
     // Group tags by category
     const categories = [...new Set(allTags.map(t => t.category).filter(Boolean))];
-    const filteredTags = activeCategory === 'all'
-        ? allTags
-        : allTags.filter(t => t.category === activeCategory);
+
+    // Filter tags by search and category
+    const filteredTags = allTags.filter(t => {
+        const matchesCategory = activeCategory === 'all' || t.category === activeCategory;
+        const matchesSearch = !tagSearch || t.name.toLowerCase().includes(tagSearch.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
+
+    // Check if search has no results (suggest creating)
+    const noResults = tagSearch && filteredTags.length === 0;
 
     if (loading) return (
         <div className="radar-page">
@@ -135,23 +156,40 @@ export default function SocialRadar({ onOpenClub, onOpenProfile }) {
                     <div className="radar-section-header">
                         <h2>🎯 Mis Intereses</h2>
                         <p className="radar-section-desc">
-                            Toca para añadir o quitar intereses. Cuantos más selecciones, más conexiones descubrirás.
+                            Toca para añadir o quitar. ¿No encuentras el tuyo? Búscalo o créalo abajo.
                         </p>
                         {saving && <span className="radar-saving">Guardando...</span>}
                     </div>
 
-                    {/* Category filter pills */}
-                    <div className="radar-category-pills">
-                        <button className={`radar-pill ${activeCategory === 'all' ? 'active' : ''}`}
-                            onClick={() => setActiveCategory('all')}>✨ Todo</button>
-                        {categories.map(cat => (
-                            <button key={cat}
-                                className={`radar-pill ${activeCategory === cat ? 'active' : ''}`}
-                                onClick={() => setActiveCategory(cat)}>
-                                {CATEGORY_ICONS[cat] || '📌'} {cat}
-                            </button>
-                        ))}
+                    {/* Search bar */}
+                    <div className="radar-search-wrap">
+                        <span className="radar-search-icon">🔍</span>
+                        <input
+                            className="radar-search"
+                            type="text"
+                            placeholder="Buscar intereses..."
+                            value={tagSearch}
+                            onChange={e => setTagSearch(e.target.value)}
+                        />
+                        {tagSearch && (
+                            <button className="radar-search-clear" onClick={() => setTagSearch('')}>✕</button>
+                        )}
                     </div>
+
+                    {/* Category filter pills (hidden when searching) */}
+                    {!tagSearch && (
+                        <div className="radar-category-pills">
+                            <button className={`radar-pill ${activeCategory === 'all' ? 'active' : ''}`}
+                                onClick={() => setActiveCategory('all')}>✨ Todo</button>
+                            {categories.map(cat => (
+                                <button key={cat}
+                                    className={`radar-pill ${activeCategory === cat ? 'active' : ''}`}
+                                    onClick={() => setActiveCategory(cat)}>
+                                    {CATEGORY_ICONS[cat] || '📌'} {cat}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Interest chips */}
                     <div className="radar-chips">
@@ -165,12 +203,40 @@ export default function SocialRadar({ onOpenClub, onOpenProfile }) {
                         ))}
                     </div>
 
+                    {/* No results → Create new tag */}
+                    {noResults && (
+                        <div className="radar-create-tag">
+                            <p>No se encontró "<strong>{tagSearch}</strong>"</p>
+                            <button className="radar-create-btn" onClick={() => { setNewTagName(tagSearch); setTagSearch(''); }}
+                                disabled={creating}>
+                                ➕ Crear "{tagSearch}"
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Create new tag input */}
+                    <div className="radar-new-tag">
+                        <input
+                            className="radar-new-tag-input"
+                            type="text"
+                            placeholder="✏️ Crear nuevo interés..."
+                            value={newTagName}
+                            onChange={e => setNewTagName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleCreateTag()}
+                            maxLength={50}
+                        />
+                        <button className="radar-new-tag-btn" onClick={handleCreateTag}
+                            disabled={creating || !newTagName.trim()}>
+                            {creating ? '...' : '➕'}
+                        </button>
+                    </div>
+
                     {myTagIds.size > 0 && (
                         <div className="radar-cta-row">
                             <p className="radar-match-hint">
                                 ✨ {myTagIds.size} interés{myTagIds.size !== 1 ? 'es' : ''} seleccionado{myTagIds.size !== 1 ? 's' : ''}
-                                {clubs.length > 0 && ` — ${clubs.length} club${clubs.length !== 1 ? 's' : ''} y `}
-                                {people.length > 0 && `${people.length} persona${people.length !== 1 ? 's' : ''} coinciden`}
+                                {clubs.length > 0 && ` — ${clubs.length} club${clubs.length !== 1 ? 's' : ''}`}
+                                {people.length > 0 && ` · ${people.length} persona${people.length !== 1 ? 's' : ''}`}
                             </p>
                         </div>
                     )}

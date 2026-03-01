@@ -545,6 +545,9 @@ function ClubSettings({ club, onSave }) {
     const [selectedTagIds, setSelectedTagIds] = useState(
         new Set((club.tags || []).map(t => typeof t === 'object' ? t.id : t))
     );
+    const [tagSearch, setTagSearch] = useState('');
+    const [newTagName, setNewTagName] = useState('');
+    const [creatingTag, setCreatingTag] = useState(false);
 
     useEffect(() => {
         axios.get('interest-tags/').then(res => {
@@ -560,9 +563,24 @@ function ClubSettings({ club, onSave }) {
         });
     };
 
+    const handleCreateTag = async () => {
+        const name = newTagName.trim();
+        if (!name) return;
+        setCreatingTag(true);
+        try {
+            const res = await axios.post('interest-tags/', { name, category: 'General' });
+            const newTag = res.data;
+            setAllTags(prev => prev.find(t => t.id === newTag.id) ? prev : [...prev, newTag]);
+            setSelectedTagIds(prev => new Set([...prev, newTag.id]));
+            setNewTagName('');
+        } catch (err) { console.error(err); } finally { setCreatingTag(false); }
+    };
+
     const save = async () => { setSaving(true); try { await onSave({ ...f, tags: [...selectedTagIds] }); } finally { setSaving(false); } };
 
     const categories = [...new Set(allTags.map(t => t.category).filter(Boolean))];
+    const filteredClubTags = allTags.filter(t => !tagSearch || t.name.toLowerCase().includes(tagSearch.toLowerCase()));
+    const noTagResults = tagSearch && filteredClubTags.length === 0;
 
     return (
         <div className="cd-settings">
@@ -579,31 +597,68 @@ function ClubSettings({ club, onSave }) {
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 10px' }}>
                 Selecciona los intereses que representan a este club.
             </p>
+
+            {/* Tag search */}
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+                <input className="cd-input" type="text" placeholder="🔍 Buscar intereses..."
+                    value={tagSearch} onChange={e => setTagSearch(e.target.value)}
+                    style={{ paddingRight: 30 }} />
+                {tagSearch && (
+                    <button onClick={() => setTagSearch('')}
+                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
+                )}
+            </div>
+
             {allTags.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-                    {categories.map(cat => (
-                        <div key={cat}>
-                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{cat}</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                {allTags.filter(t => t.category === cat).map(tag => (
-                                    <button key={tag.id} type="button" onClick={() => toggleTag(tag.id)}
-                                        style={{
-                                            padding: '5px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
-                                            border: selectedTagIds.has(tag.id) ? '1px solid transparent' : '1px solid var(--border-color)',
-                                            background: selectedTagIds.has(tag.id) ? 'var(--accent-gradient)' : 'var(--glass-bg)',
-                                            color: selectedTagIds.has(tag.id) ? 'white' : 'var(--text-main)',
-                                            transition: 'all 0.15s',
-                                        }}>
-                                        {tag.name} {selectedTagIds.has(tag.id) && '✓'}
-                                    </button>
-                                ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 8 }}>
+                    {(tagSearch ? [{ cat: 'Resultados', tags: filteredClubTags }] : categories.map(cat => ({ cat, tags: allTags.filter(t => t.category === cat) })))
+                        .filter(g => g.tags.length > 0)
+                        .map(g => (
+                            <div key={g.cat}>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{g.cat}</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    {g.tags.map(tag => (
+                                        <button key={tag.id} type="button" onClick={() => toggleTag(tag.id)}
+                                            style={{
+                                                padding: '5px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+                                                border: selectedTagIds.has(tag.id) ? '1px solid transparent' : '1px solid var(--border-color)',
+                                                background: selectedTagIds.has(tag.id) ? 'var(--accent-gradient)' : 'var(--glass-bg)',
+                                                color: selectedTagIds.has(tag.id) ? 'white' : 'var(--text-main)',
+                                                transition: 'all 0.15s',
+                                            }}>
+                                            {tag.name} {selectedTagIds.has(tag.id) && '✓'}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
                 </div>
             ) : (
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Cargando intereses...</p>
             )}
+
+            {/* No results + Create */}
+            {noTagResults && (
+                <div style={{ textAlign: 'center', padding: 16, background: 'var(--glass-bg)', border: '1px dashed var(--border-color)', borderRadius: 12, marginBottom: 8 }}>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 8px' }}>No se encontró "<strong style={{ color: 'var(--text-main)' }}>{tagSearch}</strong>"</p>
+                    <button onClick={() => { setNewTagName(tagSearch); setTagSearch(''); }}
+                        style={{ padding: '6px 16px', background: 'var(--accent-gradient)', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+                        ➕ Crear "{tagSearch}"
+                    </button>
+                </div>
+            )}
+
+            {/* Create new tag */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <input className="cd-input" type="text" placeholder="✏️ Crear nuevo interés..."
+                    value={newTagName} onChange={e => setNewTagName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCreateTag()}
+                    maxLength={50} style={{ flex: 1 }} />
+                <button onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()}
+                    style={{ padding: '8px 16px', background: 'var(--accent-gradient)', color: 'white', border: 'none', borderRadius: 12, fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', opacity: (creatingTag || !newTagName.trim()) ? 0.4 : 1 }}>
+                    {creatingTag ? '...' : '➕'}
+                </button>
+            </div>
 
             <div className="cd-price-row">
                 <div>

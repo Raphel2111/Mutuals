@@ -141,4 +141,8 @@ export const discoverPeople = async () => {
     return instance.get('users/discover-people/');
 };
 
+export const createInterestTag = async (name, category = 'General') => {
+    return instance.post('interest-tags/', { name, category });
+};
+
 export default instance;

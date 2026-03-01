@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api';
 import { fetchCurrentUser } from '../auth';
+import { toast } from '../components/Toast';
 
 export default function ProfileSettings({ onBack, showAlert = false }) {
     const [user, setUser] = useState(null);
@@ -31,31 +32,31 @@ export default function ProfileSettings({ onBack, showAlert = false }) {
         setSendingEmailCode(true);
         axios.post('users/send-email-verification/')
             .then(res => {
-                alert('Código enviado a tu email. Revisa tu bandeja de entrada.');
+                toast.success('Código enviado a tu email. Revisa tu bandeja de entrada.');
                 setShowEmailVerification(true);
             })
             .catch(err => {
-                alert('Error: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error: ' + (err.response?.data?.detail || err.message));
             })
             .finally(() => setSendingEmailCode(false));
     }
 
     function verifyEmail() {
         if (!emailCode.trim()) {
-            alert('Ingresa el código de verificación');
+            toast.info('Ingresa el código de verificación');
             return;
         }
 
         setVerifyingEmail(true);
         axios.post('users/verify-email/', { code: emailCode })
             .then(res => {
-                alert('¡Email verificado exitosamente!');
+                toast.success('¡Email verificado exitosamente!');
                 setEmailCode('');
                 setShowEmailVerification(false);
                 loadUser();
             })
             .catch(err => {
-                alert('Error: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error: ' + (err.response?.data?.detail || err.message));
             })
             .finally(() => setVerifyingEmail(false));
     }
@@ -64,7 +65,7 @@ export default function ProfileSettings({ onBack, showAlert = false }) {
         setSendingPhoneCode(true);
         axios.post('users/send-phone-verification/')
             .then(res => {
-                alert('Código enviado por SMS a tu teléfono');
+                toast.success('Código enviado por SMS a tu teléfono');
                 setShowPhoneVerification(true);
                 // En modo desarrollo, mostrar el código
                 if (res.data.dev_code) {
@@ -72,28 +73,28 @@ export default function ProfileSettings({ onBack, showAlert = false }) {
                 }
             })
             .catch(err => {
-                alert('Error: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error: ' + (err.response?.data?.detail || err.message));
             })
             .finally(() => setSendingPhoneCode(false));
     }
 
     function verifyPhone() {
         if (!phoneCode.trim()) {
-            alert('Ingresa el código de verificación');
+            toast.info('Ingresa el código de verificación');
             return;
         }
 
         setVerifyingPhone(true);
         axios.post('users/verify-phone/', { code: phoneCode })
             .then(res => {
-                alert('¡Teléfono verificado exitosamente!');
+                toast.success('¡Teléfono verificado exitosamente!');
                 setPhoneCode('');
                 setShowPhoneVerification(false);
                 setDevPhoneCode(null);
                 loadUser();
             })
             .catch(err => {
-                alert('Error: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error: ' + (err.response?.data?.detail || err.message));
             })
             .finally(() => setVerifyingPhone(false));
     }

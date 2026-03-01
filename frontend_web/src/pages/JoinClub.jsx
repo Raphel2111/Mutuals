@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api';
+import { toast } from '../components/Toast';
 
 export default function JoinClub({ token, onSuccess, onCancel }) {
     const [info, setInfo] = useState(null);
@@ -33,7 +34,7 @@ export default function JoinClub({ token, onSuccess, onCancel }) {
             onSuccess && onSuccess();
         } catch (err) {
             console.error('Error joining club:', err);
-            alert(err.response?.data?.detail || 'Error al unirse al club.');
+            toast.error(err.response?.data?.detail || 'Error al unirse al club.');
         } finally {
             setJoining(false);
         }

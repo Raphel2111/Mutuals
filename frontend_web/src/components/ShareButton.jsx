@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getApiUrl } from '../api';
+import { toast } from './Toast';
 
 const ShareButton = ({ registrationId, inviteLink }) => {
     const [loading, setLoading] = useState(false);
@@ -41,7 +42,7 @@ const ShareButton = ({ registrationId, inviteLink }) => {
 
     const fallbackShare = () => {
         navigator.clipboard.writeText(inviteLink);
-        alert('¡Enlace de invitación copiado en portapapeles!');
+        toast.info('¡Enlace de invitación copiado en portapapeles!');
     };
 
     return (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios, { getBackendUrl } from '../api';
 import QRScanner from './QRScanner';
+import { toast } from './Toast';
 
 export default function EventAccessManager({ event, currentUser }) {
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'manual', 'attended', 'scan'
@@ -67,7 +68,7 @@ export default function EventAccessManager({ event, currentUser }) {
     };
 
     const handleCreateTicket = () => {
-        if (!selectedUser) return alert('Selecciona un usuario.');
+        if (!selectedUser) return toast.info('Selecciona un usuario.');
 
         setCreating(true);
         axios.post(`events/${event.id}/create_manual_ticket/`, {
@@ -76,7 +77,7 @@ export default function EventAccessManager({ event, currentUser }) {
             alias: ticketAlias
         })
             .then(res => {
-                alert('Ticket creado exitosamente');
+                toast.success('Ticket creado exitosamente');
                 setTicketAlias('');
                 setSelectedUser(null);
                 setSearchTerm('');
@@ -85,7 +86,7 @@ export default function EventAccessManager({ event, currentUser }) {
             })
             .catch(err => {
                 console.error(err);
-                alert('Error al crear ticket: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error al crear ticket: ' + (err.response?.data?.detail || err.message));
             })
             .finally(() => setCreating(false));
     };
@@ -106,7 +107,7 @@ export default function EventAccessManager({ event, currentUser }) {
             })
             .catch((error) => {
                 console.error('Export error:', error);
-                alert('Error al exportar: ' + (error.response?.data?.detail || 'No tienes permisos o ha ocurrido un error.'));
+                toast.error('Error al exportar: ' + (error.response?.data?.detail || 'No tienes permisos o ha ocurrido un error.'));
             })
             .finally(() => setLoading(false));
     };

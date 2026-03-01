@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api';
 import { fetchCurrentUser } from '../auth';
+import { toast } from '../components/Toast';
 
 export default function MyEventQR({ eventId, onBack, isMember, embedded = false }) {
     const [event, setEvent] = useState(null);
@@ -55,12 +56,12 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
             .then(() => {
                 setRegistrations(prev => prev.filter(r => r.id !== regId));
             })
-            .catch(err => alert('Error al eliminar: ' + (err.response?.data?.detail || err.message)));
+            .catch(err => toast.error('Error al eliminar: ' + (err.response?.data?.detail || err.message)));
     }
 
     function handleCreateRegistration(isGuest = false, status = 'confirmed') {
         if (isGuest && (!guestData.first_name || !guestData.last_name)) {
-            alert('Nombre y apellido requeridos para invitado.');
+            toast.error('Nombre y apellido requeridos para invitado.');
             return;
         }
 
@@ -79,7 +80,7 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
 
         // Check limits locally if possible (optional, backend handles it)
         if (status === 'confirmed' && event.max_qr_codes && registrations.filter(r => r.status !== 'declined').length >= event.max_qr_codes) {
-            alert(`Límite alcanzado (${event.max_qr_codes}). No puedes generar más QRs.`);
+            toast.error(`Límite alcanzado (${event.max_qr_codes}). No puedes generar más QRs.`);
             return;
         }
 
@@ -87,7 +88,7 @@ export default function MyEventQR({ eventId, onBack, isMember, embedded = false 
         axios.post('registrations/', payload)
             .then(res => {
                 const msg = status === 'declined' ? 'Has registrado que NO asistirás.' : 'Registro exitoso.';
-                alert(msg);
+                toast.error(msg);
                 setRegistrations(prev => [...prev, res.data]);
                 setShowGuestForm(false);
                 setGuestData({ first_name: '', last_name: '', alias: '', type: 'guest' });

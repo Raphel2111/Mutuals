@@ -3,6 +3,7 @@ import axios from '../api';
 import { getBackendUrl } from '../api';
 import ProfileSettings from './ProfileSettings';
 import ThemePicker from '../components/ThemePicker';
+import { toast } from '../components/Toast';
 
 export default function UserProfile({ userId, onBack, showVerificationAlert, onClearAlert }) {
     const [user, setUser] = useState(null);
@@ -99,7 +100,7 @@ export default function UserProfile({ userId, onBack, showVerificationAlert, onC
                 setEditing(false);
                 setAvatarFile(null);
                 setAvatarPreview(null);
-                alert('Perfil actualizado exitosamente');
+                toast.success('Perfil actualizado exitosamente');
             })
             .catch(err => {
                 if (err.response?.data) {

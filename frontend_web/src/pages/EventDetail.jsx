@@ -7,6 +7,7 @@ import GuestCheckoutModal from '../components/GuestCheckoutModal';
 import '../components/GuestCheckoutModal.css';
 import { fetchCurrentUser } from '../auth';
 import axios from '../api';
+import { toast } from '../components/Toast';
 
 export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }) {
     const [event, setEvent] = useState(null);
@@ -44,19 +45,19 @@ export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }
             .then(res => {
                 setEvent(res.data);
                 setIsEditing(false);
-                alert('Evento actualizado correctamente');
+                toast.success('Evento actualizado correctamente');
             })
-            .catch(err => alert('Error al actualizar: ' + (err.response?.data?.detail || JSON.stringify(err.response?.data))));
+            .catch(err => toast.error('Error al actualizar: ' + (err.response?.data?.detail || JSON.stringify(err.response?.data))));
     }
 
     function handleDeleteEvent() {
         if (!window.confirm('¿Estás seguro de que quieres borrar este evento? Esta acción no se puede deshacer.')) return;
         axios.delete(`events/${eventId}/`)
             .then(() => {
-                alert('Evento borrado exitosamente');
+                toast.success('Evento borrado exitosamente');
                 onBack(); // Go back to the previous list
             })
-            .catch(err => alert('Error al borrar: ' + (err.response?.data?.detail || err.message)));
+            .catch(err => toast.error('Error al borrar: ' + (err.response?.data?.detail || err.message)));
     }
 
     useEffect(() => {
@@ -99,17 +100,17 @@ export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }
         axios.delete(`registrations/${regId}/`)
             .then(() => {
                 setRegistrations(prev => prev.filter(r => r.id !== regId));
-                alert('Inscripción eliminada correctamente.');
+                toast.success('Inscripción eliminada correctamente.');
             })
             .catch(err => {
                 console.error('Error deleting registration:', err.response?.data || err.message);
-                alert('Error al eliminar inscripción: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error al eliminar inscripción: ' + (err.response?.data?.detail || err.message));
             });
     }
 
     function addAdmin() {
         if (!newAdminEmail.trim()) {
-            alert('Por favor ingresa un email');
+            toast.info('Por favor ingresa un email');
             return;
         }
 
@@ -118,7 +119,7 @@ export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }
             .then(res => {
                 const users = Array.isArray(res.data) ? res.data : (res.data.results || []);
                 if (users.length === 0) {
-                    alert('Usuario no encontrado con ese email');
+                    toast.info('Usuario no encontrado con ese email');
                     return;
                 }
                 const user = users[0];
@@ -131,11 +132,11 @@ export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }
                 setEvent(prev => ({ ...prev, admins: res.data.admins }));
                 setNewAdminEmail('');
                 setShowAddAdmin(false);
-                alert('Admin agregado exitosamente');
+                toast.success('Admin agregado exitosamente');
             })
             .catch(err => {
                 console.error('Error adding admin:', err.response?.data || err.message);
-                alert('Error al agregar admin: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error al agregar admin: ' + (err.response?.data?.detail || err.message));
             });
     }
 
@@ -148,11 +149,11 @@ export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }
             .then(res => {
                 // Update local event state with new admins list from backend
                 setEvent(prev => ({ ...prev, admins: res.data.admins }));
-                alert('Admin removido exitosamente');
+                toast.success('Admin removido exitosamente');
             })
             .catch(err => {
                 console.error('Error removing admin:', err.response?.data || err.message);
-                alert('Error al remover admin: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error al remover admin: ' + (err.response?.data?.detail || err.message));
             });
     }
 

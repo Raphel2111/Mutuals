@@ -3,6 +3,7 @@ import axios, { apiBase, backendBase } from '../api';
 import { fetchCurrentUser } from '../auth';
 import PostEventSurvey from '../components/PostEventSurvey';
 import '../components/PostEventSurvey.css';
+import { toast } from '../components/Toast';
 
 // ─── Dynamic QR Component ───────────────────────────────────────────────────
 function DynamicQR({ registrationId, entryCode }) {
@@ -94,11 +95,11 @@ export default function RegistrationList() {
         axios.delete(`registrations/${regId}/`)
             .then(() => {
                 setRegs(prev => prev.filter(r => r.id !== regId));
-                alert('Inscripción eliminada correctamente.');
+                toast.success('Inscripción eliminada correctamente.');
             })
             .catch(err => {
                 console.error('Error deleting registration:', err.response?.data || err.message);
-                alert('Error al eliminar inscripción: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error al eliminar inscripción: ' + (err.response?.data?.detail || err.message));
             });
     }
 
@@ -117,7 +118,7 @@ export default function RegistrationList() {
             }
         } else {
             navigator.clipboard.writeText(shareText);
-            alert('¡Texto de la entrada copiado al portapapeles!');
+            toast.info('¡Texto de la entrada copiado al portapapeles!');
         }
     }
 

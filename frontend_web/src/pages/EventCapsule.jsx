@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { backendBase } from '../api';
 import axios from 'axios';
 import './EventCapsule.css';
+import { toast } from '../components/Toast';
 
 const instance = axios.create({
     baseURL: backendBase + '/api/',
@@ -61,7 +62,7 @@ export default function EventCapsule({ event }) {
             setCaption('');
             await loadPhotos();
         } catch (err) {
-            alert(err.response?.data?.detail || 'Error al subir la foto.');
+            toast.error(err.response?.data?.detail || 'Error al subir la foto.');
         } finally {
             setUploading(false);
         }

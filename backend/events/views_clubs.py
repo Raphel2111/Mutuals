@@ -134,19 +134,27 @@ class ClubWallPostSerializer(serializers.ModelSerializer):
         required=False, allow_null=True
     )
     reply_preview = serializers.SerializerMethodField()
+    image_url     = serializers.SerializerMethodField()
 
     class Meta:
         model  = ClubWallPost
         fields = [
             'id', 'club', 'author_id', 'author_name', 'author_avatar',
-            'content', 'reply_to_id', 'reply_preview',
+            'content', 'image_url', 'reply_to_id', 'reply_preview',
             'like_count', 'user_liked', 'created_at', 'updated_at',
         ]
         read_only_fields = [
             'author_id', 'author_name', 'author_avatar',
-            'like_count', 'user_liked', 'reply_preview',
+            'like_count', 'user_liked', 'reply_preview', 'image_url',
             'created_at', 'updated_at',
         ]
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+        return None
 
     def get_author_name(self, obj):
         return obj.author.get_full_name() or obj.author.username

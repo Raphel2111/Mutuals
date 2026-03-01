@@ -20,6 +20,7 @@ import { fetchCurrentUser } from './auth';
 import ErrorBoundary from './ErrorBoundary';
 import ProfileCompletionModal from './components/ProfileCompletionModal';
 import BottomNavigation from './components/BottomNavigation';
+import { ToastContainer } from './components/Toast';
 
 function App() {
     const [view, setView] = useState('events');
@@ -298,6 +299,8 @@ function App() {
             {authenticated && (
                 <QRFab onPress={() => setView('registrations')} />
             )}
+
+            <ToastContainer />
         </div>
     );
 }

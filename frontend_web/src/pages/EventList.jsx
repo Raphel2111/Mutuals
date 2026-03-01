@@ -4,6 +4,7 @@ import EventDetail from './EventDetail';
 import ClubDetail from './ClubDetail';
 import EventCard from '../components/EventCard';
 import { fetchCurrentUser } from '../auth';
+import { toast } from '../components/Toast';
 
 export default function EventList(props) {
     const [events, setEvents] = useState([]);
@@ -94,7 +95,7 @@ export default function EventList(props) {
         if (!window.confirm(`¿Eliminar "${eventName}"?`)) return;
         axios.delete(`events/${eventId}/`)
             .then(() => setEvents(prev => prev.filter(e => e.id !== eventId)))
-            .catch(err => alert('Error: ' + (err.response?.data?.detail || err.message)));
+            .catch(err => toast.error('Error: ' + (err.response?.data?.detail || err.message)));
     }
 
     function isEventAdmin(event) {

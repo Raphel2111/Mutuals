@@ -3,6 +3,7 @@ import axios from '../api';
 import ClubMembershipModal from '../components/ClubMembershipModal';
 import { fetchCurrentUser } from '../auth';
 import './ClubDetail.css';
+import { toast } from '../components/Toast';
 
 const BADGE_OPTIONS = [
     { value: 'member', label: 'Miembro Nuevo', emoji: '👤' },
@@ -674,7 +675,7 @@ function CreateClubEventBox({ clubId, onCreated }) {
     const [f, setF] = useState({ name: '', date: '', location: '', description: '', price: 0 });
 
     const submit = async () => {
-        if (!f.name || !f.date) return alert('Nombre y Fecha son obligatorios.');
+        if (!f.name || !f.date) return toast.info('Nombre y Fecha son obligatorios.');
         setLoading(true);
         try {
             await axios.post('events/', {
@@ -684,7 +685,7 @@ function CreateClubEventBox({ clubId, onCreated }) {
             setExpanded(false);
             onCreated();
         } catch (e) {
-            alert('Error al crear evento: ' + (e.response?.data?.detail || e.message));
+            toast.error('Error al crear evento: ' + (e.response?.data?.detail || e.message));
         } finally {
             setLoading(false);
         }
@@ -734,15 +735,27 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
     const [loading, setLoading] = useState(false);
     const [mentionQuery, setMentionQuery] = useState(null); // string | null
     const [mentionIdx, setMentionIdx] = useState(0);
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [hasMore, setHasMore] = useState(wallPosts.length >= 50);
+    const [loadingOlder, setLoadingOlder] = useState(false);
+    const fileInputRef = useRef(null);
     const chatEndRef = useRef(null);
     const inputRef = useRef(null);
     const pollingRef = useRef(null);
+    const wallPostsRef = useRef(wallPosts);
+
+    // Keep ref in sync
+    useEffect(() => {
+        wallPostsRef.current = wallPosts;
+    }, [wallPosts]);
 
     // ── Auto-polling every 5s ──
     useEffect(() => {
         pollingRef.current = setInterval(async () => {
             try {
-                const lastId = wallPosts.length > 0 ? Math.max(...wallPosts.map(p => p.id)) : 0;
+                const currentPosts = wallPostsRef.current;
+                const lastId = currentPosts.length > 0 ? Math.max(...currentPosts.map(p => p.id)) : 0;
                 const res = await axios.get(`clubs/${clubId}/wall/?since=${lastId}`);
                 const newPosts = res.data || [];
                 if (newPosts.length > 0) {
@@ -756,7 +769,7 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
             } catch (e) { /* silent */ }
         }, 5000);
         return () => clearInterval(pollingRef.current);
-    }, [clubId, wallPosts]);
+    }, [clubId, setWallPosts]);
 
     // ── Auto-scroll when new messages added ──
     useEffect(() => {
@@ -767,17 +780,35 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
 
     // ── Submit message ──
     const submit = async () => {
-        if (!content.trim()) return;
+        if (!content.trim() && !imageFile) return;
         setLoading(true);
         try {
-            const payload = { club: clubId, content };
-            if (replyTo) payload.reply_to_id = replyTo.id;
-            const res = await axios.post('club-wall-posts/', payload);
+            let res;
+            if (imageFile) {
+                // If there's an image, use FormData
+                const formData = new FormData();
+                formData.append('club', clubId);
+                if (content.trim()) formData.append('content', content);
+                if (replyTo) formData.append('reply_to_id', replyTo.id);
+                formData.append('image', imageFile);
+
+                res = await axios.post('club-wall-posts/', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            } else {
+                // Otherwise use JSON
+                const payload = { club: clubId, content };
+                if (replyTo) payload.reply_to_id = replyTo.id;
+                res = await axios.post('club-wall-posts/', payload);
+            }
+
             setWallPosts(prev => [res.data, ...prev]);
             setContent('');
             setReplyTo(null);
+            setImageFile(null);
+            setImagePreview(null);
         } catch (e) {
-            alert('Error: ' + (e.response?.data?.detail || e.message));
+            toast.error('Error: ' + (e.response?.data?.detail || e.message));
         } finally {
             setLoading(false);
         }
@@ -789,6 +820,22 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
             await axios.delete(`club-wall-posts/${postId}/`);
             setWallPosts(prev => prev.filter(p => p.id !== postId));
         } catch (e) { console.error(e); }
+    };
+
+    // ── Load older messages ──
+    const loadOlder = async () => {
+        if (!wallPosts.length) return;
+        setLoadingOlder(true);
+        try {
+            const oldestId = Math.min(...wallPosts.map(p => p.id));
+            const res = await axios.get(`clubs/${clubId}/wall/?before=${oldestId}`);
+            const olderPosts = res.data || [];
+            if (olderPosts.length < 50) setHasMore(false);
+            if (olderPosts.length > 0) {
+                setWallPosts(prev => [...prev, ...olderPosts]);
+            }
+        } catch (e) { console.error(e); }
+        finally { setLoadingOlder(false); }
     };
 
     // ── @mention handling ──
@@ -875,6 +922,28 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
         <div className="chat-container">
             {/* Messages */}
             <div className="chat-messages">
+                {hasMore && wallPosts.length > 0 && (
+                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                        <button
+                            onClick={loadOlder}
+                            disabled={loadingOlder}
+                            style={{
+                                background: 'var(--glass-bg)',
+                                border: '1px solid var(--border-color)',
+                                padding: '6px 16px',
+                                borderRadius: 16,
+                                fontSize: '0.8rem',
+                                color: 'var(--text-main)',
+                                cursor: 'pointer',
+                                transition: '0.2s'
+                            }}
+                            onMouseOver={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                            onMouseOut={e => e.currentTarget.style.background = 'var(--glass-bg)'}
+                        >
+                            {loadingOlder ? 'Cargando...' : '↑ Cargar mensajes anteriores'}
+                        </button>
+                    </div>
+                )}
                 {sortedPosts.length === 0 && (
                     <div className="cd-empty">
                         <p style={{ fontSize: 36, margin: '0 0 10px' }}>💬</p>
@@ -907,7 +976,12 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
                                         </div>
                                     </div>
                                 )}
-                                <p className="chat-msg-content">{renderContent(post.content)}</p>
+                                {post.image_url && (
+                                    <div className="chat-msg-image">
+                                        <img src={post.image_url} alt="Envío" onClick={() => window.open(post.image_url, '_blank')} />
+                                    </div>
+                                )}
+                                {post.content && <p className="chat-msg-content">{renderContent(post.content)}</p>}
                                 <div className="chat-msg-actions">
                                     <ChatLikeBtn post={post} />
                                     <button className="chat-action-btn" onClick={() => { setReplyTo(post); inputRef.current?.focus(); }}>
@@ -920,171 +994,197 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
                                     )}
                                 </div>
                             </div>
-                        </div>
-                    );
+                            );
                 })}
-                <div ref={chatEndRef} />
-            </div>
+                            <div ref={chatEndRef} />
+                        </div>
 
-            {/* Reply banner */}
-            {replyTo && (
-                <div className="chat-reply-banner">
-                    <div className="chat-reply-banner-content">
-                        <span>↩️ Respondiendo a <strong>{replyTo.author_name}</strong></span>
-                        <span className="chat-reply-banner-text">"{(replyTo.content || '').slice(0, 50)}{(replyTo.content || '').length > 50 ? '…' : ''}"</span>
-                    </div>
-                    <button className="chat-reply-banner-close" onClick={() => setReplyTo(null)}>✕</button>
-                </div>
-            )}
-
-            {/* Compose area */}
-            <div className="chat-compose">
-                {/* @mention dropdown */}
-                {mentionQuery !== null && mentionCandidates.length > 0 && (
-                    <div className="chat-mention-dropdown">
-                        {mentionCandidates.map((m, i) => (
-                            <div key={m.id}
-                                className={`chat-mention-item ${i === mentionIdx ? 'active' : ''}`}
-                                onMouseDown={(e) => { e.preventDefault(); insertMention(m.username); }}>
-                                <span className="chat-mention-name">@{m.username}</span>
-                                {m.name !== m.username && <span className="chat-mention-full">{m.name}</span>}
+            {/* Reply banner */ }
+                    {
+                        replyTo && (
+                            <div className="chat-reply-banner">
+                                <div className="chat-reply-banner-content">
+                                    <span>↩️ Respondiendo a <strong>{replyTo.author_name}</strong></span>
+                                    <span className="chat-reply-banner-text">"{(replyTo.content || '').slice(0, 50)}{(replyTo.content || '').length > 50 ? '…' : ''}"</span>
+                                </div>
+                                <button className="chat-reply-banner-close" onClick={() => setReplyTo(null)}>✕</button>
                             </div>
-                        ))}
+                        )
+                    }
+
+                    {/* Image Preview Banner */ }
+                    {
+                        imagePreview && (
+                            <div className="chat-image-preview">
+                                <img src={imagePreview} alt="Preview" />
+                                <button className="chat-image-preview-close" onClick={clearImage}>✕</button>
+                            </div>
+                        )
+                    }
+
+                    {/* Compose area */ }
+                    <div className="chat-compose">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            ref={fileInputRef}
+                            onChange={handleImageSelect}
+                        />
+                        <button
+                            className="chat-attach-btn"
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Adjuntar imagen"
+                        >
+                            📎
+                        </button>
+
+                        {/* @mention dropdown */}
+                        {mentionQuery !== null && mentionCandidates.length > 0 && (
+                            <div className="chat-mention-dropdown">
+                                {mentionCandidates.map((m, i) => (
+                                    <div key={m.id}
+                                        className={`chat-mention-item ${i === mentionIdx ? 'active' : ''}`}
+                                        onMouseDown={(e) => { e.preventDefault(); insertMention(m.username); }}>
+                                        <span className="chat-mention-name">@{m.username}</span>
+                                        {m.name !== m.username && <span className="chat-mention-full">{m.name}</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <textarea
+                            ref={inputRef}
+                            className="chat-input"
+                            placeholder="Escribe un mensaje... (@ para mencionar)"
+                            value={content}
+                            onChange={handleInput}
+                            onKeyDown={handleKeyDown}
+                            rows={1}
+                        />
+                        <button className="chat-send-btn" onClick={submit} disabled={loading || (!content.trim() && !imageFile)}>
+                            {loading ? '…' : '➤'}
+                        </button>
                     </div>
-                )}
-                <textarea
-                    ref={inputRef}
-                    className="chat-input"
-                    placeholder="Escribe un mensaje... (@ para mencionar)"
-                    value={content}
-                    onChange={handleInput}
-                    onKeyDown={handleKeyDown}
-                    rows={1}
-                />
-                <button className="chat-send-btn" onClick={submit} disabled={loading || !content.trim()}>
-                    {loading ? '…' : '➤'}
-                </button>
-            </div>
         </div>
-    );
+            );
 }
 
-// ── Like button sub-component ────────────────────────────────────────────────
-function ChatLikeBtn({ post }) {
+            // ── Like button sub-component ────────────────────────────────────────────────
+            function ChatLikeBtn({post}) {
     const [liked, setLiked] = useState(post.user_liked);
-    const [count, setCount] = useState(post.like_count);
+            const [count, setCount] = useState(post.like_count);
     const toggle = async () => {
         try {
             const res = await axios.post(`club-wall-posts/${post.id}/like/`);
             setLiked(res.data.liked);
             setCount(res.data.like_count);
-        } catch (e) { console.error(e); }
+        } catch (e) {console.error(e); }
     };
-    return (
-        <button className={`chat-action-btn ${liked ? 'liked' : ''}`} onClick={toggle}>
-            {liked ? '❤️' : '🤍'} {count > 0 ? count : ''}
-        </button>
-    );
+            return (
+            <button className={`chat-action-btn ${liked ? 'liked' : ''}`} onClick={toggle}>
+                {liked ? '❤️' : '🤍'} {count > 0 ? count : ''}
+            </button>
+            );
 }
 
-// ── Manage Invitations ───────────────────────────────────────────────────────
-function ManageInvitations({ clubId, invitations, onUpdate, flash }) {
+            // ── Manage Invitations ───────────────────────────────────────────────────────
+            function ManageInvitations({clubId, invitations, onUpdate, flash}) {
     const [loading, setLoading] = useState(false);
-    const [days, setDays] = useState(7);
-    const [maxUses, setMaxUses] = useState('');
+            const [days, setDays] = useState(7);
+            const [maxUses, setMaxUses] = useState('');
 
     const createInvite = async () => {
-        setLoading(true);
-        try {
-            await axios.post(`clubs/${clubId}/create_invitation/`, {
-                expires_in_days: days,
-                max_uses: maxUses ? parseInt(maxUses) : null
-            });
+                setLoading(true);
+            try {
+                await axios.post(`clubs/${clubId}/create_invitation/`, {
+                    expires_in_days: days,
+                    max_uses: maxUses ? parseInt(maxUses) : null
+                });
             onUpdate();
             flash('✓ Invitación creada');
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+        } catch (e) {console.error(e); }
+            finally {setLoading(false); }
     };
 
     const copyToClipboard = (url) => {
-        navigator.clipboard.writeText(url);
-        flash('📋 Copiado al portapapeles');
+                navigator.clipboard.writeText(url);
+            flash('📋 Copiado al portapapeles');
     };
 
-    return (
-        <div className="cd-invites">
-            <h3 className="cd-settings-title">🎟️ Gestión de Invitaciones</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
-                Crea enlaces únicos para que otros se unan al club saltándose la aprobación manual.
-            </p>
+            return (
+            <div className="cd-invites">
+                <h3 className="cd-settings-title">🎟️ Gestión de Invitaciones</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+                    Crea enlaces únicos para que otros se unan al club saltándose la aprobación manual.
+                </p>
 
-            <div className="cd-create-invite-box" style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)', marginBottom: 20 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>Días de validez</label>
-                        <input className="cd-input" type="number" value={days} onChange={e => setDays(e.target.value)} min="1" max="365" />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>Usos máx.</label>
-                        <input className="cd-input" type="number" value={maxUses} onChange={e => setMaxUses(e.target.value)} placeholder="∞ ilimitado" />
-                    </div>
-                </div>
-                <button className="cd-btn-save btn-shimmer" style={{ width: '100%' }} onClick={createInvite} disabled={loading}>
-                    {loading ? 'Generando...' : '➕ Generar enlace de invitación'}
-                </button>
-            </div>
-
-            <div className="cd-invites-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {invitations.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px 0' }}>No hay enlaces activos.</p>}
-                {invitations.map(inv => (
-                    <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--glass-bg)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-color)' }}>
-                        <div className="cd-invite-info">
-                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Token: {inv.token.slice(0, 6)}...{inv.token.slice(-4)}</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {inv.use_count} usos {inv.max_uses ? `/ ${inv.max_uses}` : ''} · Expira {new Date(inv.expires_at).toLocaleDateString()}
-                            </p>
+                <div className="cd-create-invite-box" style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)', marginBottom: 20 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>Días de validez</label>
+                            <input className="cd-input" type="number" value={days} onChange={e => setDays(e.target.value)} min="1" max="365" />
                         </div>
-                        <button className="cd-mini-btn" onClick={() => copyToClipboard(inv.url)} title="Copiar Link" style={{ fontSize: '1rem', padding: 8 }}>📋</button>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>Usos máx.</label>
+                            <input className="cd-input" type="number" value={maxUses} onChange={e => setMaxUses(e.target.value)} placeholder="∞ ilimitado" />
+                        </div>
                     </div>
-                ))}
+                    <button className="cd-btn-save btn-shimmer" style={{ width: '100%' }} onClick={createInvite} disabled={loading}>
+                        {loading ? 'Generando...' : '➕ Generar enlace de invitación'}
+                    </button>
+                </div>
+
+                <div className="cd-invites-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {invitations.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px 0' }}>No hay enlaces activos.</p>}
+                    {invitations.map(inv => (
+                        <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--glass-bg)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                            <div className="cd-invite-info">
+                                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Token: {inv.token.slice(0, 6)}...{inv.token.slice(-4)}</p>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                    {inv.use_count} usos {inv.max_uses ? `/ ${inv.max_uses}` : ''} · Expira {new Date(inv.expires_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                            <button className="cd-mini-btn" onClick={() => copyToClipboard(inv.url)} title="Copiar Link" style={{ fontSize: '1rem', padding: 8 }}>📋</button>
+                        </div>
+                    ))}
+                </div>
             </div>
-        </div>
-    );
+            );
 }
 
-// ── Add Member Component ─────────────────────────────────────────────────────
-function AddMemberAction({ clubId, onAdded, flash }) {
+            // ── Add Member Component ─────────────────────────────────────────────────────
+            function AddMemberAction({clubId, onAdded, flash}) {
     const [username, setUsername] = useState('');
-    const [loading, setLoading] = useState(false);
+            const [loading, setLoading] = useState(false);
 
     const handleAdd = async (e) => {
-        e.preventDefault();
-        if (!username.trim()) return;
-        setLoading(true);
-        try {
-            await axios.post(`clubs/${clubId}/add_member/`, { username: username.trim() });
+                e.preventDefault();
+            if (!username.trim()) return;
+            setLoading(true);
+            try {
+                await axios.post(`clubs/${clubId}/add_member/`, { username: username.trim() });
             setUsername('');
             onAdded();
             flash(`✓ ${username} añadido al club`);
         } catch (e) {
-            flash(`❌ Error: ${e.response?.data?.detail || 'No se pudo añadir'}`);
+                flash(`❌ Error: ${e.response?.data?.detail || 'No se pudo añadir'}`);
         } finally {
-            setLoading(false);
+                setLoading(false);
         }
     };
 
-    return (
-        <form onSubmit={handleAdd} className="cd-add-member-form" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            <input
-                className="cd-input"
-                placeholder="Añadir miembro por username..."
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                style={{ flex: 1, padding: '0 12px', background: 'var(--glass-bg)', borderRadius: 8, border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.9rem' }}
-            />
-            <button className="cd-btn-save" type="submit" disabled={loading} style={{ width: 'auto', padding: '0 20px', fontSize: '0.85rem' }}>
-                {loading ? '...' : 'Añadir'}
-            </button>
-        </form>
-    );
+            return (
+            <form onSubmit={handleAdd} className="cd-add-member-form" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <input
+                    className="cd-input"
+                    placeholder="Añadir miembro por username..."
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    style={{ flex: 1, padding: '0 12px', background: 'var(--glass-bg)', borderRadius: 8, border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.9rem' }}
+                />
+                <button className="cd-btn-save" type="submit" disabled={loading} style={{ width: 'auto', padding: '0 20px', fontSize: '0.85rem' }}>
+                    {loading ? '...' : 'Añadir'}
+                </button>
+            </form>
+            );
 }

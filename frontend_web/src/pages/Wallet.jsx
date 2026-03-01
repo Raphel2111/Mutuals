@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api';
+import { toast } from '../components/Toast';
 
 export default function Wallet() {
     const [wallet, setWallet] = useState(null);
@@ -16,10 +17,10 @@ export default function Wallet() {
         // Manejar retornos de Stripe Connect / Checkout
         const params = new URLSearchParams(window.location.search);
         if (params.get('wallet_success')) {
-            alert('¡Recarga iniciada con éxito! Tu saldo se actualizará en breve una vez que Stripe procese el pago.');
+            toast.success('¡Recarga iniciada con éxito! Tu saldo se actualizará en breve una vez que Stripe procese el pago.');
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (params.get('wallet_cancel')) {
-            alert('El proceso de recarga ha sido cancelado.');
+            toast.info('El proceso de recarga ha sido cancelado.');
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }, []);
@@ -37,7 +38,7 @@ export default function Wallet() {
             })
             .catch(err => {
                 console.error('Error loading wallet:', err);
-                alert('Error al cargar la billetera: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error al cargar la billetera: ' + (err.response?.data?.detail || err.message));
             })
             .finally(() => setLoading(false));
     }
@@ -45,7 +46,7 @@ export default function Wallet() {
     function handleAddFunds(e) {
         e.preventDefault();
         if (!amount || parseFloat(amount) <= 0) {
-            alert('Por favor ingresa un monto válido');
+            toast.info('Por favor ingresa un monto válido');
             return;
         }
 
@@ -58,13 +59,13 @@ export default function Wallet() {
                 if (res.data.checkout_url) {
                     window.location.href = res.data.checkout_url;
                 } else {
-                    alert('Error inesperado: Stripe checkout URL no recibida.');
+                    toast.error('Error inesperado: Stripe checkout URL no recibida.');
                     setProcessing(false);
                 }
             })
             .catch(err => {
                 console.error('Error adding funds:', err);
-                alert('Error al conectar con la pasarela de pago: ' + (err.response?.data?.detail || err.message));
+                toast.error('Error al conectar con la pasarela de pago: ' + (err.response?.data?.detail || err.message));
                 setProcessing(false);
             });
     }

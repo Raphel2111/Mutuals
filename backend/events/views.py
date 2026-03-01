@@ -1371,11 +1371,22 @@ class ClubViewSet(viewsets.ModelViewSet):
         qs = club.wall_posts.select_related('author', 'reply_to', 'reply_to__author').all()
         # Support incremental polling: ?since=<last_id>
         since_id = request.query_params.get('since')
+        before_id = request.query_params.get('before')
+        
         if since_id:
             try:
                 qs = qs.filter(id__gt=int(since_id))
             except (ValueError, TypeError):
                 pass
+        elif before_id:
+            try:
+                qs = qs.filter(id__lt=int(before_id))[:50]
+            except (ValueError, TypeError):
+                pass
+        else:
+            # Initial load: only bottom 50
+            qs = qs[:50]
+            
         return Response(ClubWallPostSerializer(qs, many=True, context={'request': request}).data)
 
     @action(detail=True, methods=['post'], url_path='create_invitation', permission_classes=[permissions.IsAuthenticated])

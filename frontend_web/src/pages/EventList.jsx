@@ -216,7 +216,7 @@ export default function EventList(props) {
                     {inputValue && (
                         <button
                             onClick={() => { setInputValue(''); setSearchText(''); setShowSuggestions(false); }}
-                            style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}
+                            style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}
                             aria-label="Limpiar búsqueda"
                         >✕</button>
                     )}
@@ -225,7 +225,7 @@ export default function EventList(props) {
                     {showSuggestions && suggestions.length > 0 && (
                         <div style={{
                             position: 'absolute', top: '110%', left: 0, right: 0, zIndex: 200,
-                            background: 'rgba(15,23,42,0.96)', backdropFilter: 'blur(12px)',
+                            background: 'var(--bg-secondary)', backdropFilter: 'blur(12px)',
                             border: '1px solid rgba(192,132,252,0.2)', borderRadius: 14,
                             overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
                         }}>
@@ -247,8 +247,8 @@ export default function EventList(props) {
                                         background: ev.image_url ? `url(${ev.image_url}) center/cover` : 'linear-gradient(135deg,#9333ea,#d946ef)',
                                     }} />
                                     <div>
-                                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: '#e2e8f0' }}>{ev.name}</p>
-                                        <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>
+                                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)' }}>{ev.name}</p>
+                                        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                                             {ev.date ? new Date(ev.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : ''}
                                             {ev.location ? ` · 📍 ${ev.location}` : ''}
                                         </p>

@@ -25,7 +25,7 @@
 .rm-modal {
     position: relative;
     width: min(480px, 96vw);
-    background: rgba(15, 15, 25, 0.92);
+    background: var(--bg-secondary);
     border: 1px solid rgba(217, 70, 239, 0.25);
     border-radius: 20px;
     padding: 28px 24px 24px;
@@ -51,26 +51,26 @@
     right: 16px;
     background: none;
     border: none;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 1.1rem;
     cursor: pointer;
     line-height: 1;
 }
 
 .rm-close:hover {
-    color: #e2e8f0;
+    color: var(--text-main);
 }
 
 .rm-title {
     font-size: 1.15rem;
     font-weight: 800;
-    color: #e2e8f0;
+    color: var(--text-main);
     margin: 0 0 4px;
 }
 
 .rm-target {
     font-size: 0.82rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0 0 18px;
 }
 
@@ -91,7 +91,7 @@
     border-radius: 10px;
     cursor: pointer;
     font-size: 0.88rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     transition: all 0.12s;
 }
 
@@ -101,14 +101,14 @@
 
 .rm-reason:hover {
     border-color: rgba(217, 70, 239, 0.3);
-    color: #e2e8f0;
+    color: var(--text-main);
     background: rgba(217, 70, 239, 0.05);
 }
 
 .rm-reason.selected {
     border-color: #d946ef;
     background: rgba(217, 70, 239, 0.1);
-    color: #e2e8f0;
+    color: var(--text-main);
 }
 
 /* ─── Description ─── */
@@ -118,7 +118,7 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
-    color: #e2e8f0;
+    color: var(--text-main);
     font-size: 0.85rem;
     padding: 10px 12px;
     resize: vertical;

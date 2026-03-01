@@ -5,13 +5,13 @@
     padding: 20px 16px 60px;
     min-height: 100vh;
     font-family: 'Inter', 'Outfit', sans-serif;
-    color: #e2e8f0;
+    color: var(--text-main);
 }
 
 .sp-back {
     background: none;
     border: none;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 0.88rem;
     cursor: pointer;
     padding: 0 0 16px;
@@ -84,7 +84,7 @@
 
 .sp-username {
     font-size: 0.82rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0 0 8px;
 }
 
@@ -94,7 +94,7 @@
 
 .sp-bio {
     font-size: 0.9rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     line-height: 1.5;
     margin: 8px 0 12px;
 }
@@ -123,7 +123,7 @@
 
 .sp-connections-label {
     font-size: 0.68rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
     display: flex;
     align-items: center;
@@ -150,7 +150,7 @@
 .sp-section-title {
     font-size: 1rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--text-muted);
     margin: 0 0 12px;
     letter-spacing: 0.03em;
     text-transform: uppercase;
@@ -166,11 +166,11 @@
 
 .sp-chip {
     padding: 5px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     border-radius: 20px;
     font-size: 0.8rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     cursor: pointer;
     transition: all 0.15s;
 }
@@ -221,8 +221,8 @@
     position: relative;
     overflow: hidden;
     padding: 14px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -270,13 +270,13 @@
 
 .sp-badge-club {
     font-size: 0.7rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
 }
 
 .sp-badge-count {
     font-size: 0.68rem;
-    color: #475569;
+    color: var(--text-muted);
     margin-top: auto;
 }
 
@@ -357,13 +357,13 @@
 .sp-timeline-name {
     font-size: 0.9rem;
     font-weight: 700;
-    color: #e2e8f0;
+    color: var(--text-main);
     margin: 0 0 3px;
 }
 
 .sp-timeline-meta {
     font-size: 0.76rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -397,7 +397,7 @@
 
 .sp-privacy-notice {
     font-size: 0.85rem;
-    color: #475569;
+    color: var(--text-muted);
     padding: 12px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.02);
@@ -406,7 +406,7 @@
 
 /* ─── Empty / Not found ─── */
 .sp-empty {
-    color: #475569;
+    color: var(--text-muted);
     font-size: 0.85rem;
 }
 
@@ -417,7 +417,7 @@
     justify-content: center;
     gap: 10px;
     min-height: 60vh;
-    color: #475569;
+    color: var(--text-muted);
 }
 
 .sp-not-found span {

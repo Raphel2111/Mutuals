@@ -29,7 +29,7 @@
 
 .radar-subtitle {
     font-size: 0.95rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     margin: 0 0 20px;
 }
 
@@ -108,7 +108,7 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 999px;
-    color: #f1f5f9;
+    color: var(--text-main);
     font-size: 0.85rem;
     outline: none;
     transition: all 0.2s;
@@ -127,14 +127,14 @@
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 0.9rem;
     cursor: pointer;
     padding: 4px;
 }
 
 .radar-clear-filter:hover {
-    color: #f1f5f9;
+    color: var(--text-main);
 }
 
 /* ─── Radar Canvas ─── */
@@ -244,7 +244,7 @@
 
 .radar-you-label {
     font-size: 0.72rem;
-    color: #e2e8f0;
+    color: var(--text-main);
     font-weight: 600;
 }
 
@@ -302,7 +302,7 @@
 .radar-found {
     text-align: center;
     font-size: 0.9rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     margin: 12px 0;
     padding: 12px 20px;
     border-radius: 12px;
@@ -342,7 +342,7 @@
 .meet-mode-instruction {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #f1f5f9;
+    color: var(--text-main);
     margin: 0 0 16px;
     line-height: 1.4;
 }
@@ -355,7 +355,7 @@
 
 .meet-mode-hint {
     font-size: 0.95rem;
-    color: #64748b;
+    color: var(--text-muted);
     max-width: 280px;
     margin: 0 auto 36px;
     line-height: 1.6;
@@ -390,7 +390,7 @@
     width: 40px;
     height: 4px;
     border-radius: 2px;
-    background: #334155;
+    background: var(--border-color);
     margin-bottom: 4px;
 }
 
@@ -406,7 +406,7 @@
 .match-drawer-name {
     font-size: 1.3rem;
     font-weight: 700;
-    color: #f1f5f9;
+    color: var(--text-main);
     margin: 0;
 }
 
@@ -416,7 +416,7 @@
 
 .match-tags-label {
     font-size: 0.82rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0 0 10px;
 }
 
@@ -447,7 +447,7 @@
 
 .icebreaker-label {
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0 0 6px;
 }
 
@@ -486,9 +486,9 @@
 .btn-ghost {
     padding: 12px 28px;
     border-radius: 999px;
-    border: 1.5px solid #334155;
+    border: 1.5px solid var(--border-color);
     background: transparent;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 0.9rem;
     cursor: pointer;
     transition: border-color 0.2s;
@@ -501,9 +501,9 @@
 .btn-ghost-sm {
     padding: 8px 20px;
     border-radius: 999px;
-    border: 1.5px solid #334155;
+    border: 1.5px solid var(--border-color);
     background: transparent;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 0.85rem;
     cursor: pointer;
     transition: border-color 0.2s;

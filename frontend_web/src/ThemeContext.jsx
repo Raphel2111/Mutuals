@@ -18,7 +18,8 @@ export const ThemeProvider = ({ children }) => {
     });
 
     useEffect(() => {
-        // Apply the theme to the body data attribute
+        // Apply the theme to both html and body so [data-theme] selectors override :root
+        document.documentElement.setAttribute('data-theme', theme);
         document.body.setAttribute('data-theme', theme);
         // Save to localStorage
         localStorage.setItem('mutuals_theme', theme);

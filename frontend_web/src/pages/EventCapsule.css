@@ -10,13 +10,13 @@
 .capsule-title {
     font-size: 1.25rem;
     font-weight: 800;
-    color: #f1f5f9;
+    color: var(--text-main);
     margin: 0 0 4px;
 }
 
 .capsule-subtitle {
     font-size: 0.88rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -37,13 +37,13 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     padding: 10px 14px;
-    color: #e2e8f0;
+    color: var(--text-main);
     font-size: 0.9rem;
     outline: none;
 }
 
 .capsule-caption-input::placeholder {
-    color: #475569;
+    color: var(--text-muted);
 }
 
 .capsule-upload-btn {
@@ -65,7 +65,7 @@
 
 .capsule-upload-hint {
     font-size: 0.75rem;
-    color: #475569;
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -185,7 +185,7 @@
 .capsule-lock-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #f1f5f9;
+    color: var(--text-main);
     margin: 0 0 8px;
 }
 
@@ -198,7 +198,7 @@
 
 .capsule-lock-sub {
     font-size: 0.82rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -206,7 +206,7 @@
 .capsule-empty {
     text-align: center;
     padding: 40px 20px;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .capsule-empty-icon {
@@ -224,7 +224,7 @@
 .capsule-skeleton {
     height: 180px;
     border-radius: 14px;
-    background: linear-gradient(90deg, #1e293b 25%, #0f172a 50%, #1e293b 75%);
+    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.4s infinite;
     margin-bottom: 12px;

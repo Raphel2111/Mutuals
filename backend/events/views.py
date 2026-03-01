@@ -1317,6 +1317,11 @@ class ClubViewSet(viewsets.ModelViewSet):
             if field in request.data:
                 setattr(club, field, request.data[field])
         club.save()
+        # Handle tags M2M separately
+        if 'tags' in request.data:
+            from users.models import InterestTag
+            tag_ids = request.data['tags']
+            club.tags.set(InterestTag.objects.filter(id__in=tag_ids))
         return Response(ClubSerializer(club, context={'request': request}).data)
 
     @action(detail=True, methods=['get'], url_path='posts', url_name='club-posts')

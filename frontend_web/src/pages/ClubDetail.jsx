@@ -541,8 +541,28 @@ function ClubSettings({ club, onSave }) {
         membership_benefits: club.membership_benefits || '',
     });
     const [saving, setSaving] = useState(false);
+    const [allTags, setAllTags] = useState([]);
+    const [selectedTagIds, setSelectedTagIds] = useState(
+        new Set((club.tags || []).map(t => typeof t === 'object' ? t.id : t))
+    );
 
-    const save = async () => { setSaving(true); try { await onSave(f); } finally { setSaving(false); } };
+    useEffect(() => {
+        axios.get('interest-tags/').then(res => {
+            setAllTags(res.data?.results || res.data || []);
+        }).catch(() => { });
+    }, []);
+
+    const toggleTag = (id) => {
+        setSelectedTagIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
+    const save = async () => { setSaving(true); try { await onSave({ ...f, tags: [...selectedTagIds] }); } finally { setSaving(false); } };
+
+    const categories = [...new Set(allTags.map(t => t.category).filter(Boolean))];
 
     return (
         <div className="cd-settings">
@@ -553,6 +573,38 @@ function ClubSettings({ club, onSave }) {
                 <input type="checkbox" checked={f.is_private} onChange={e => setF({ ...f, is_private: e.target.checked })} />
                 Club privado
             </label>
+
+            {/* Tags picker */}
+            <label className="cd-label" style={{ marginTop: 16 }}>🏷️ Intereses del Club (para Radar)</label>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 10px' }}>
+                Selecciona los intereses que representan a este club.
+            </p>
+            {allTags.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                    {categories.map(cat => (
+                        <div key={cat}>
+                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{cat}</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {allTags.filter(t => t.category === cat).map(tag => (
+                                    <button key={tag.id} type="button" onClick={() => toggleTag(tag.id)}
+                                        style={{
+                                            padding: '5px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+                                            border: selectedTagIds.has(tag.id) ? '1px solid transparent' : '1px solid var(--border-color)',
+                                            background: selectedTagIds.has(tag.id) ? 'var(--accent-gradient)' : 'var(--glass-bg)',
+                                            color: selectedTagIds.has(tag.id) ? 'white' : 'var(--text-main)',
+                                            transition: 'all 0.15s',
+                                        }}>
+                                        {tag.name} {selectedTagIds.has(tag.id) && '✓'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Cargando intereses...</p>
+            )}
+
             <div className="cd-price-row">
                 <div>
                     <label className="cd-label">Cuota mensual (€)</label>

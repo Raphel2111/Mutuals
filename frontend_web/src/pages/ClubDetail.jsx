@@ -149,8 +149,8 @@ export default function ClubDetail({ clubId, onBack }) {
             {/* Hero */}
             <div className="cd-hero" style={{
                 background: club.image_url
-                    ? `linear-gradient(rgba(0,0,0,0.45), rgba(10,13,25,0.95)), url(${club.image_url}) center/cover`
-                    : 'linear-gradient(135deg,#1e293b,#0f172a)'
+                    ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.85)), url(${club.image_url}) center/cover`
+                    : 'var(--accent-gradient)'
             }}>
                 <div className="cd-hero-body">
                     <div className="cd-avatar">

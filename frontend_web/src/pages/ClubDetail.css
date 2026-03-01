@@ -38,6 +38,25 @@
     padding: 32px 24px 20px;
 }
 
+/* Force light text inside hero since cover bg is always dark */
+.cd-hero .cd-name {
+    color: #ffffff;
+}
+
+.cd-hero .cd-desc {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.cd-hero .cd-stats {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.cd-hero .cd-chip {
+    background: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 .cd-avatar {
     width: 72px;
     height: 72px;

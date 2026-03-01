@@ -124,4 +124,21 @@ export const updateAvailabilityStatus = async (available) => {
     return instance.patch('users/me/', { availability_status: available });
 };
 
+// Radar Discovery APIs
+export const fetchCurrentUser = async () => {
+    return instance.get('users/me/');
+};
+
+export const updateUserInterests = async (userId, interestIds) => {
+    return instance.patch(`users/${userId}/`, { interests: interestIds });
+};
+
+export const discoverClubsByInterests = async () => {
+    return instance.get('clubs/discover-by-interests/');
+};
+
+export const discoverPeople = async () => {
+    return instance.get('users/discover-people/');
+};
+
 export default instance;

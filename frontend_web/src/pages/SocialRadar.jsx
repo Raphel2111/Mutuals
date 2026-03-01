@@ -1,248 +1,284 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { fetchMutualMatches, updateAvailabilityStatus } from '../api';
+import React, { useState, useEffect } from 'react';
+import { fetchInterestTags, fetchCurrentUser, updateUserInterests, discoverClubsByInterests, discoverPeople } from '../api';
 import './SocialRadar.css';
 
-const MEET_EMOJIS = ['🍎', '🎯', '🦋', '🌊', '⚡', '🎸', '🏄', '🌙', '🔮', '🦄'];
+const CATEGORY_ICONS = {
+    'Arte': '🎨', 'Entretenimiento': '🎬', 'Gaming': '🎮',
+    'Cultura': '📚', 'Lifestyle': '🌿', 'Deportes': '⚽',
+    'Tech': '💻', 'Social': '🤝',
+};
 
-function getRandomPositions(count) {
-    const positions = [];
-    for (let i = 0; i < count; i++) {
-        const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
-        const radius = 38 + (i % 3) * 7; // vary the orbit radius slightly
-        positions.push({
-            top: `${50 + radius * Math.sin(angle)}%`,
-            left: `${50 + radius * Math.cos(angle)}%`,
-        });
-    }
-    return positions;
-}
-
-export default function SocialRadar({ eventId, currentUser, initialFilter }) {
-    const [matches, setMatches] = useState([]);
+export default function SocialRadar({ onOpenClub, onOpenProfile }) {
+    const [user, setUser] = useState(null);
+    const [allTags, setAllTags] = useState([]);
+    const [myTagIds, setMyTagIds] = useState(new Set());
+    const [clubs, setClubs] = useState([]);
+    const [people, setPeople] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [filter, setFilter] = useState(initialFilter || ''); // Nuevo: barra de búsqueda con estado inicial
-    const [available, setAvailable] = useState(
-        currentUser?.availability_status !== false
-    );
-    const [selectedMatch, setSelectedMatch] = useState(null);
-    const [meetMode, setMeetMode] = useState(false);
-    const [myEmoji] = useState(() => MEET_EMOJIS[Math.floor(Math.random() * MEET_EMOJIS.length)]);
-    const drawerRef = useRef(null);
+    const [saving, setSaving] = useState(false);
+    const [activeCategory, setActiveCategory] = useState('all');
+    const [tab, setTab] = useState('interests'); // interests | clubs | people
 
-    useEffect(() => {
-        if (eventId && available) loadMatches();
-    }, [eventId, available]);
+    useEffect(() => { loadAll(); }, []);
 
-    const loadMatches = async () => {
+    const loadAll = async () => {
         setLoading(true);
-        setError('');
         try {
-            const res = await fetchMutualMatches(eventId);
-            setMatches(res.data.matches || []);
+            const [tagsRes, userRes] = await Promise.all([
+                fetchInterestTags(),
+                fetchCurrentUser(),
+            ]);
+            const tags = tagsRes.data?.results || tagsRes.data || [];
+            setAllTags(tags);
+            const u = userRes.data;
+            setUser(u);
+            const ids = new Set((u.interests || []).map(i => typeof i === 'object' ? i.id : i));
+            setMyTagIds(ids);
+
+            // Load discovery data if user has interests
+            if (ids.size > 0) {
+                loadDiscovery();
+            }
         } catch (err) {
-            const msg = err.response?.data?.detail || 'No se pudo cargar el radar.';
-            setError(msg);
+            console.error('Radar load error:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const toggleAvailability = async () => {
-        const newVal = !available;
-        setAvailable(newVal);
+    const loadDiscovery = async () => {
         try {
-            await updateAvailabilityStatus(newVal);
-            if (newVal) loadMatches();
-            else setMatches([]);
-        } catch {
-            setAvailable(!newVal); // rollback on error
+            const [clubsRes, peopleRes] = await Promise.all([
+                discoverClubsByInterests(),
+                discoverPeople(),
+            ]);
+            setClubs(clubsRes.data?.clubs || []);
+            setPeople(peopleRes.data?.people || []);
+        } catch (err) {
+            console.error('Discovery error:', err);
         }
     };
 
-    const filteredMatches = matches.filter(m => {
-        if (!filter) return true;
-        const search = filter.toLowerCase().replace('#', '');
-        return m.name.toLowerCase().includes(search) ||
-            m.shared_tags?.some(tag => tag.toLowerCase().includes(search));
-    });
+    const toggleTag = async (tagId) => {
+        const newIds = new Set(myTagIds);
+        if (newIds.has(tagId)) {
+            newIds.delete(tagId);
+        } else {
+            newIds.add(tagId);
+        }
+        setMyTagIds(newIds);
 
-    const positions = getRandomPositions(filteredMatches.length);
+        // Save to backend
+        setSaving(true);
+        try {
+            await updateUserInterests(user.id, [...newIds]);
+            // Reload discovery after interest change
+            if (newIds.size > 0) {
+                loadDiscovery();
+            } else {
+                setClubs([]);
+                setPeople([]);
+            }
+        } catch (err) {
+            console.error('Error updating interests:', err);
+            // Revert on error
+            setMyTagIds(myTagIds);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Group tags by category
+    const categories = [...new Set(allTags.map(t => t.category).filter(Boolean))];
+    const filteredTags = activeCategory === 'all'
+        ? allTags
+        : allTags.filter(t => t.category === activeCategory);
+
+    if (loading) return (
+        <div className="radar-page">
+            <div className="radar-hero">
+                <h1 className="radar-title">🔭 Radar</h1>
+                <p className="radar-subtitle">Cargando tu radar de conexiones...</p>
+            </div>
+            <div className="radar-skeleton">
+                {[...Array(6)].map((_, i) => <div key={i} className="skeleton-chip" />)}
+            </div>
+        </div>
+    );
 
     return (
-        <div className="social-radar-page">
-            <div className="radar-header">
-                <h1 className="radar-title">
-                    <span className="radar-title-gradient">Radar Social</span> 🌐
-                </h1>
+        <div className="radar-page">
+            {/* Hero */}
+            <div className="radar-hero">
+                <h1 className="radar-title">🔭 Radar</h1>
                 <p className="radar-subtitle">
-                    Descubre quién coincide contigo en este evento ahora mismo.
+                    Selecciona tus intereses y descubre clubs y personas que comparten tus gustos.
                 </p>
-
-                {/* Availability Toggle */}
-                <div className="availability-toggle-row">
-                    <button
-                        className={`availability-btn ${available ? 'available' : 'hidden'}`}
-                        onClick={toggleAvailability}
-                    >
-                        <span className="avail-dot" />
-                        {available ? 'Disponible para charlar' : 'Solo observando'}
-                    </button>
-
-                    <button
-                        className={`meet-mode-btn ${meetMode ? 'active' : ''}`}
-                        onClick={() => setMeetMode(!meetMode)}
-                    >
-                        {meetMode ? '❌ Salir del Modo Encuentro' : '🎭 Activar Modo Encuentro'}
-                    </button>
-                </div>
-
-                {/* Search / Filter Bar */}
-                <div className="radar-search-container">
-                    <input
-                        type="text"
-                        placeholder="Filtrar por nombre o #tag..."
-                        className="radar-search-input"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                    />
-                    {filter && (
-                        <button className="radar-clear-filter" onClick={() => setFilter('')}>✕</button>
-                    )}
-                </div>
             </div>
 
-            {/* ── MEET MODE OVERLAY ── */}
-            {meetMode && (
-                <div className="meet-mode-overlay fade-in">
-                    <div className="meet-mode-emoji">{myEmoji}</div>
-                    <h2 className="meet-mode-instruction">
-                        Busca a la persona con el emoji
-                        <span className="meet-emoji-highlight"> {myEmoji} </span>
-                        en su pantalla, cerca de la barra o la entrada.
-                    </h2>
-                    <p className="meet-mode-hint">
-                        Tu match también te está buscando ahora mismo. ¡El primer gesto lo rompe todo!
-                    </p>
-                    <button className="btn-ghost" onClick={() => setMeetMode(false)}>
-                        Cancelar
-                    </button>
+            {/* Tab bar */}
+            <div className="radar-tabs">
+                <button className={`radar-tab ${tab === 'interests' ? 'active' : ''}`} onClick={() => setTab('interests')}>
+                    🎯 Mis Intereses {myTagIds.size > 0 && <span className="radar-tab-badge">{myTagIds.size}</span>}
+                </button>
+                <button className={`radar-tab ${tab === 'clubs' ? 'active' : ''}`} onClick={() => setTab('clubs')}>
+                    🏛️ Clubs {clubs.length > 0 && <span className="radar-tab-badge">{clubs.length}</span>}
+                </button>
+                <button className={`radar-tab ${tab === 'people' ? 'active' : ''}`} onClick={() => setTab('people')}>
+                    👥 Gente {people.length > 0 && <span className="radar-tab-badge">{people.length}</span>}
+                </button>
+            </div>
+
+            {/* ── MY INTERESTS ── */}
+            {tab === 'interests' && (
+                <div className="radar-section">
+                    <div className="radar-section-header">
+                        <h2>🎯 Mis Intereses</h2>
+                        <p className="radar-section-desc">
+                            Toca para añadir o quitar intereses. Cuantos más selecciones, más conexiones descubrirás.
+                        </p>
+                        {saving && <span className="radar-saving">Guardando...</span>}
+                    </div>
+
+                    {/* Category filter pills */}
+                    <div className="radar-category-pills">
+                        <button className={`radar-pill ${activeCategory === 'all' ? 'active' : ''}`}
+                            onClick={() => setActiveCategory('all')}>✨ Todo</button>
+                        {categories.map(cat => (
+                            <button key={cat}
+                                className={`radar-pill ${activeCategory === cat ? 'active' : ''}`}
+                                onClick={() => setActiveCategory(cat)}>
+                                {CATEGORY_ICONS[cat] || '📌'} {cat}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Interest chips */}
+                    <div className="radar-chips">
+                        {filteredTags.map(tag => (
+                            <button key={tag.id}
+                                className={`radar-chip ${myTagIds.has(tag.id) ? 'selected' : ''}`}
+                                onClick={() => toggleTag(tag.id)}>
+                                {tag.name}
+                                {myTagIds.has(tag.id) && <span className="chip-check">✓</span>}
+                            </button>
+                        ))}
+                    </div>
+
+                    {myTagIds.size > 0 && (
+                        <div className="radar-cta-row">
+                            <p className="radar-match-hint">
+                                ✨ {myTagIds.size} interés{myTagIds.size !== 1 ? 'es' : ''} seleccionado{myTagIds.size !== 1 ? 's' : ''}
+                                {clubs.length > 0 && ` — ${clubs.length} club${clubs.length !== 1 ? 's' : ''} y `}
+                                {people.length > 0 && `${people.length} persona${people.length !== 1 ? 's' : ''} coinciden`}
+                            </p>
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* ── RADAR CANVAS ── */}
-            {!meetMode && (
-                <>
-                    <div className="radar-canvas-wrap">
-                        <div className="radar-canvas">
-                            {/* Pulsing rings */}
-                            <div className="ring ring-1" />
-                            <div className="ring ring-2" />
-                            <div className="ring ring-3" />
-
-                            {/* Center core */}
-                            <div className="radar-core">
-                                <img
-                                    src={currentUser?.avatar_url || `https://ui-avatars.com/api/?name=${currentUser?.username}&background=7c3aed&color=fff&size=80`}
-                                    alt="Tú"
-                                    className="radar-center-avatar"
-                                />
-                                <span className="radar-you-label">Tú</span>
-                            </div>
-
-                            {/* Match Avatars */}
-                            {!loading && filteredMatches.map((match, i) => (
-                                <button
-                                    key={match.user_id}
-                                    className="radar-avatar-btn"
-                                    style={positions[i]}
-                                    onClick={() => setSelectedMatch(match)}
-                                    title={match.name}
-                                >
-                                    <img
-                                        src={match.avatar_url}
-                                        alt={match.name}
-                                        className="radar-avatar-img"
-                                    />
-                                    <span className="radar-avatar-score">
-                                        {match.match_score}✨
-                                    </span>
-                                </button>
-                            ))}
-
-                            {loading && (
-                                <div className="radar-scan-line" />
-                            )}
-                        </div>
+            {/* ── CLUBS MATCHING ── */}
+            {tab === 'clubs' && (
+                <div className="radar-section">
+                    <div className="radar-section-header">
+                        <h2>🏛️ Clubs para ti</h2>
+                        <p className="radar-section-desc">Clubs que comparten tus intereses, ordenados por coincidencia.</p>
                     </div>
 
-                    {/* Status rows */}
-                    {!available && (
-                        <p className="radar-off-msg">
-                            Estás en modo <strong>Solo observando</strong>. Activa tu disponibilidad para aparecer en el radar de otros.
-                        </p>
+                    {myTagIds.size === 0 ? (
+                        <div className="radar-empty">
+                            <span className="radar-empty-icon">🎯</span>
+                            <p>Añade intereses en la pestaña <strong>"Mis Intereses"</strong> para descubrir clubs.</p>
+                        </div>
+                    ) : clubs.length === 0 ? (
+                        <div className="radar-empty">
+                            <span className="radar-empty-icon">🔭</span>
+                            <p>Aún no hay clubs que coincidan con tus intereses. ¡Pronto habrá más!</p>
+                        </div>
+                    ) : (
+                        <div className="radar-clubs-grid">
+                            {clubs.map(club => (
+                                <div key={club.id} className="radar-club-card"
+                                    onClick={() => onOpenClub?.(club.id)}>
+                                    <div className="radar-club-header">
+                                        <div className="radar-club-avatar">
+                                            {club.image_url
+                                                ? <img src={club.image_url} alt={club.name} />
+                                                : <span>{club.name.slice(0, 2).toUpperCase()}</span>}
+                                        </div>
+                                        <div className="radar-club-info">
+                                            <h3>{club.name}</h3>
+                                            <p className="radar-club-meta">
+                                                👥 {club.members_count} miembros
+                                                {club.is_private && ' · 🔒 Privado'}
+                                            </p>
+                                        </div>
+                                        <div className="radar-match-score">
+                                            <span className="score-number">{club.match_score}</span>
+                                            <span className="score-label">match{club.match_score !== 1 ? 'es' : ''}</span>
+                                        </div>
+                                    </div>
+                                    {club.description && (
+                                        <p className="radar-club-desc">{club.description.slice(0, 100)}{club.description.length > 100 ? '…' : ''}</p>
+                                    )}
+                                    <div className="radar-shared-tags">
+                                        {(club.tags || [])
+                                            .filter(t => club.shared_tag_ids?.includes(t.id))
+                                            .map(t => <span key={t.id} className="radar-shared-chip">{t.name}</span>)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
-                    {available && !loading && matches.length === 0 && !error && (
-                        <p className="radar-empty">
-                            🔍 Aún no hay matches en esta sala. El radar se actualiza continuamente — ¡el mejor momento para conocer a alguien es cuando llegas!
-                        </p>
-                    )}
-                    {error && <p className="radar-error">{error}</p>}
-
-                    {/* Match count summary */}
-                    {!loading && filteredMatches.length > 0 && (
-                        <p className="radar-found">
-                            🎯 {filteredMatches.length} persona{filteredMatches.length !== 1 ? 's' : ''} afín{filteredMatches.length !== 1 ? 'es' : ''} {filter ? 'con esa etiqueta' : 'en esta sala'}. Toca un avatar para ver qué tenéis en común.
-                        </p>
-                    )}
-                </>
+                </div>
             )}
 
-            {/* ── MATCH DRAWER ── */}
-            {selectedMatch && (
-                <div className="drawer-backdrop" onClick={() => setSelectedMatch(null)}>
-                    <div
-                        className="match-drawer slide-up"
-                        ref={drawerRef}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="match-drawer-handle" />
-                        <img
-                            src={selectedMatch.avatar_url}
-                            alt={selectedMatch.name}
-                            className="match-drawer-avatar"
-                        />
-                        <h3 className="match-drawer-name">{selectedMatch.name}</h3>
-
-                        <div className="match-tags">
-                            <p className="match-tags-label">Coincidís en:</p>
-                            <div className="match-tag-list">
-                                {selectedMatch.shared_tags.map(tag => (
-                                    <span key={tag} className="tag-pill">#{tag}</span>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="icebreaker-box">
-                            <p className="icebreaker-label">💬 Sugerencia de rompehielos:</p>
-                            <p className="icebreaker-text">"{selectedMatch.icebreaker_suggestion}"</p>
-                        </div>
-
-                        <div className="match-drawer-actions">
-                            <button
-                                className="btn-primary-full"
-                                onClick={() => {
-                                    setMeetMode(true);
-                                    setSelectedMatch(null);
-                                }}
-                            >
-                                🎭 Activar Modo Encuentro
-                            </button>
-                            <button className="btn-ghost-sm" onClick={() => setSelectedMatch(null)}>
-                                Cerrar
-                            </button>
-                        </div>
+            {/* ── PEOPLE MATCHING ── */}
+            {tab === 'people' && (
+                <div className="radar-section">
+                    <div className="radar-section-header">
+                        <h2>👥 Gente como tú</h2>
+                        <p className="radar-section-desc">Personas con gustos similares a los tuyos.</p>
                     </div>
+
+                    {myTagIds.size === 0 ? (
+                        <div className="radar-empty">
+                            <span className="radar-empty-icon">🎯</span>
+                            <p>Añade intereses en la pestaña <strong>"Mis Intereses"</strong> para descubrir gente.</p>
+                        </div>
+                    ) : people.length === 0 ? (
+                        <div className="radar-empty">
+                            <span className="radar-empty-icon">🌐</span>
+                            <p>Aún no hay gente con tus mismos intereses. ¡Invita a tus amigos!</p>
+                        </div>
+                    ) : (
+                        <div className="radar-people-grid">
+                            {people.map(person => (
+                                <div key={person.id} className="radar-person-card"
+                                    onClick={() => onOpenProfile?.(person.id)}>
+                                    <div className="radar-person-avatar">
+                                        {person.avatar_url
+                                            ? <img src={person.avatar_url} alt={person.username} />
+                                            : <span>{(person.full_name || person.username).slice(0, 2).toUpperCase()}</span>}
+                                    </div>
+                                    <div className="radar-person-info">
+                                        <h4>{person.full_name || person.username}</h4>
+                                        <p className="radar-person-username">@{person.username}</p>
+                                        {person.bio && <p className="radar-person-bio">{person.bio.slice(0, 80)}{person.bio.length > 80 ? '…' : ''}</p>}
+                                    </div>
+                                    <div className="radar-match-score">
+                                        <span className="score-number">{person.match_score}</span>
+                                        <span className="score-label">match{person.match_score !== 1 ? 'es' : ''}</span>
+                                    </div>
+                                    <div className="radar-shared-tags">
+                                        {(person.interests || [])
+                                            .filter(t => person.shared_tag_ids?.includes(t.id))
+                                            .map(t => <span key={t.id} className="radar-shared-chip">{t.name}</span>)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

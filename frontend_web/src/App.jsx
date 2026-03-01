@@ -278,9 +278,8 @@ function App() {
                         {view === 'radar' && authenticated && (
                             <ErrorBoundary>
                                 <SocialRadar
-                                    eventId={null}
-                                    currentUser={currentUser}
-                                    initialFilter={radarFilter}
+                                    onOpenClub={(clubId) => { /* TODO: navigate to club */ }}
+                                    onOpenProfile={(userId) => { /* TODO: navigate to profile */ }}
                                 />
                             </ErrorBoundary>
                         )}

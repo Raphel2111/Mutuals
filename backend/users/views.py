@@ -467,6 +467,50 @@ EventoApp
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    @action(detail=False, methods=['get'], url_path='discover-people')
+    def discover_people(self, request):
+        """
+        Radar Discovery: Returns users who share interest tags with the
+        authenticated user, sorted by match score (number of shared tags).
+        """
+        user = request.user
+        my_tag_ids = set(user.interests.values_list('id', flat=True))
+        if not my_tag_ids:
+            return Response({'people': [], 'message': 'Añade intereses a tu perfil para descubrir gente.'})
+
+        # Get users with at least one shared interest (exclude self)
+        candidates = (
+            User.objects
+            .exclude(pk=user.pk)
+            .filter(interests__id__in=my_tag_ids)
+            .prefetch_related('interests')
+            .distinct()
+        )
+
+        results = []
+        for u in candidates[:50]:  # cap at 50
+            their_tag_ids = set(u.interests.values_list('id', flat=True))
+            shared = my_tag_ids.intersection(their_tag_ids)
+            avatar_url = None
+            if u.avatar:
+                try:
+                    avatar_url = request.build_absolute_uri(u.avatar.url)
+                except Exception:
+                    pass
+            results.append({
+                'id': u.id,
+                'username': u.username,
+                'full_name': f'{u.first_name} {u.last_name}'.strip() or u.username,
+                'avatar_url': avatar_url,
+                'bio': u.bio or '',
+                'match_score': len(shared),
+                'shared_tag_ids': list(shared),
+                'interests': [{'id': t.id, 'name': t.name, 'category': t.category} for t in u.interests.all()],
+            })
+
+        results.sort(key=lambda x: x['match_score'], reverse=True)
+        return Response({'people': results})
+
     @action(detail=False, methods=['post'], url_path='password-reset-request', permission_classes=[permissions.AllowAny], authentication_classes=[])
     def password_reset_request(self, request):
         """Solicita restablecimiento de contraseña"""

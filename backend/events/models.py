@@ -37,6 +37,8 @@ class Club(models.Model):
     admins      = models.ManyToManyField(User, related_name='managed_clubs')
     created_at  = models.DateTimeField(auto_now_add=True)
     is_private  = models.BooleanField(default=True, help_text='Si es True, unirse requiere aprobación por un Admin.')
+    tags        = models.ManyToManyField('users.InterestTag', blank=True, related_name='clubs',
+                                         help_text='Intereses/temáticas del club para el Radar de descubrimiento')
 
     # ── Monetización ────────────────────────────────────────────────────────
     stripe_account_id  = models.CharField(max_length=100, blank=True, null=True,

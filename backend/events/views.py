@@ -1512,7 +1512,33 @@ class ClubViewSet(viewsets.ModelViewSet):
             'use_count': invitation.use_count
         })
 
+    @action(detail=False, methods=['get'], url_path='discover-by-interests')
+    def discover_by_interests(self, request):
+        """
+        Radar Discovery: Returns clubs that share interest tags with the
+        authenticated user, sorted by match score (number of shared tags).
+        """
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'detail': 'Autenticación requerida.'}, status=401)
 
+        my_tag_ids = set(user.interests.values_list('id', flat=True))
+        if not my_tag_ids:
+            return Response({'clubs': [], 'message': 'Añade intereses a tu perfil para descubrir clubs.'})
+
+        clubs = Club.objects.prefetch_related('tags', 'admins').all()
+        results = []
+        for club in clubs:
+            club_tag_ids = set(club.tags.values_list('id', flat=True))
+            shared = my_tag_ids.intersection(club_tag_ids)
+            if shared:
+                club_data = ClubSerializer(club, context={'request': request}).data
+                club_data['match_score'] = len(shared)
+                club_data['shared_tag_ids'] = list(shared)
+                results.append(club_data)
+
+        results.sort(key=lambda x: x['match_score'], reverse=True)
+        return Response({'clubs': results})
 class ClubMembershipViewSet(viewsets.ModelViewSet):
     queryset = ClubMembership.objects.all()
     serializer_class = ClubMembershipSerializer

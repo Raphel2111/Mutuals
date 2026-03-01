@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Event, Registration, AccessRequest, Wallet, Transaction, Club, ClubMembership, ClubPost, ClubInvitation, ClubAccessToken
-from users.models import User
+from users.models import User, InterestTag
+from users.serializers import InterestTagSerializer
 from rest_framework import exceptions
 
 class UserSerializer(serializers.ModelSerializer):
@@ -95,6 +96,7 @@ class ClubSerializer(serializers.ModelSerializer):
     image_url           = serializers.SerializerMethodField()
     is_admin            = serializers.SerializerMethodField()
     is_paid             = serializers.SerializerMethodField()
+    tags                = InterestTagSerializer(many=True, read_only=True)
 
     class Meta:
         model = Club
@@ -102,7 +104,7 @@ class ClubSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'description', 'image', 'image_url', 'is_private', 'admins',
             'members_count', 'is_member', 'my_badge', 'my_membership_status', 'is_admin',
             'monthly_price', 'annual_price', 'membership_benefits',
-            'stripe_account_status', 'is_paid',
+            'stripe_account_status', 'is_paid', 'tags',
         ]
 
     def get_members_count(self, obj):

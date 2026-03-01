@@ -8,7 +8,7 @@
 .cd-back {
     background: none;
     border: none;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
@@ -20,7 +20,7 @@
 }
 
 .cd-back:hover {
-    color: #e2e8f0;
+    color: var(--text-main);
 }
 
 /* ─── Hero ───────────────────────────────────────────────────────────────── */
@@ -28,7 +28,7 @@
     border-radius: 20px;
     overflow: hidden;
     margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--border-color);
 }
 
 .cd-hero-body {
@@ -105,14 +105,14 @@
     margin: 0 0 6px;
     font-size: 1.6rem;
     font-weight: 900;
-    color: #f1f5f9;
+    color: var(--text-main);
     letter-spacing: -0.02em;
 }
 
 .cd-desc {
     margin: 0 0 10px;
     font-size: 0.88rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     line-height: 1.5;
 }
 
@@ -120,7 +120,7 @@
     display: flex;
     gap: 16px;
     font-size: 0.82rem;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 /* CTA row */
@@ -202,7 +202,7 @@
 .cd-tab {
     background: none;
     border: none;
-    color: #64748b;
+    color: var(--text-muted);
     white-space: nowrap;
     font-size: 0.88rem;
     font-weight: 600;
@@ -271,7 +271,7 @@
     margin: 0;
     font-size: 0.9rem;
     font-weight: 700;
-    color: #e2e8f0;
+    color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -280,7 +280,7 @@
 .cd-member-meta {
     margin: 0;
     font-size: 0.75rem;
-    color: #64748b;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -378,7 +378,7 @@
 .cd-label {
     font-size: 0.78rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-muted);
     margin-bottom: 4px;
 }
 
@@ -388,7 +388,7 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
-    color: #e2e8f0;
+    color: var(--text-main);
     padding: 10px 12px;
     font-size: 0.88rem;
     font-family: inherit;
@@ -457,7 +457,7 @@
 .cd-empty {
     text-align: center;
     padding: 48px 24px;
-    color: #475569;
+    color: var(--text-muted);
     font-size: 0.88rem;
 }
 
@@ -470,7 +470,7 @@
 }
 
 .cd-create-placeholder {
-    color: #475569;
+    color: var(--text-muted);
     font-size: 0.88rem;
     cursor: text;
     padding: 6px 4px;
@@ -490,7 +490,7 @@
 .cd-tag-btn {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #64748b;
+    color: var(--text-muted);
     border-radius: 20px;
     padding: 4px 12px;
     font-size: 0.78rem;
@@ -515,7 +515,7 @@
 
 .cd-pin-toggle {
     font-size: 0.78rem;
-    color: #64748b;
+    color: var(--text-muted);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -525,7 +525,7 @@
 .cd-btn-cancel {
     background: none;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #64748b;
+    color: var(--text-muted);
     border-radius: 10px;
     padding: 8px 16px;
     font-size: 0.82rem;
@@ -568,7 +568,7 @@
     margin: 0;
     font-size: 0.85rem;
     font-weight: 700;
-    color: #e2e8f0;
+    color: var(--text-main);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -586,20 +586,20 @@
 .cd-post-time {
     margin: 0;
     font-size: 0.72rem;
-    color: #475569;
+    color: var(--text-muted);
 }
 
 .cd-post-title {
     margin: 0 0 6px;
     font-size: 1rem;
     font-weight: 800;
-    color: #f1f5f9;
+    color: var(--text-main);
 }
 
 .cd-post-content {
     margin: 0 0 10px;
     font-size: 0.88rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     line-height: 1.6;
     white-space: pre-wrap;
 }
@@ -621,7 +621,7 @@
 .cd-like-btn {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #64748b;
+    color: var(--text-muted);
     border-radius: 20px;
     padding: 4px 12px;
     font-size: 0.82rem;
@@ -638,7 +638,7 @@
 .cd-post-action-btn {
     background: rgba(255, 255, 255, 0.05);
     border: none;
-    color: #64748b;
+    color: var(--text-muted);
     border-radius: 8px;
     width: 28px;
     height: 28px;
@@ -719,13 +719,13 @@
     margin: 0 0 3px;
     font-size: 0.9rem;
     font-weight: 700;
-    color: #e2e8f0;
+    color: var(--text-main);
 }
 
 .cd-event-meta {
     margin: 0 0 4px;
     font-size: 0.75rem;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .cd-event-price-tag {

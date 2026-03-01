@@ -186,7 +186,7 @@ nav {
 .brand-text {
 	font-weight: 700;
 	font-size: 20px;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: var(--accent-gradient);
 	-webkit-background-clip: text;
 	background-clip: text;
 	color: transparent;
@@ -223,7 +223,7 @@ nav {
 
 .nav-links .btn.nav-item:hover {
 	color: var(--text);
-	background: rgba(255, 255, 255, 0.05);
+	background: var(--glass-bg);
 	transform: none;
 	box-shadow: none;
 }
@@ -240,7 +240,7 @@ nav {
 	display: flex;
 	align-items: center;
 	padding-left: 16px;
-	border-left: 1px solid #e2e8f0;
+	border-left: 1px solid var(--border-color);
 	margin-left: 8px;
 }
 
@@ -316,7 +316,7 @@ nav {
 	padding: 24px;
 	box-shadow: var(--shadow);
 	margin-bottom: 20px;
-	border: 1px solid #e2e8f0;
+	border: 1px solid var(--border-color);
 	transition: transform var(--transition), box-shadow var(--transition);
 }
 
@@ -331,14 +331,14 @@ nav {
 	justify-content: space-between;
 	margin-bottom: 16px;
 	padding-bottom: 16px;
-	border-bottom: 1px solid #f1f5f9;
+	border-bottom: 1px solid var(--border-color);
 }
 
 .card-title {
 	margin: 0;
 	font-size: 18px;
 	font-weight: 600;
-	color: #1e293b;
+	color: var(--text);
 }
 
 .grid {
@@ -440,13 +440,13 @@ nav {
 .btn.secondary {
 	background: var(--surface);
 	color: var(--primary);
-	border: 1px solid #e2e8f0;
+	border: 1px solid var(--border-color);
 	box-shadow: var(--shadow-sm);
 }
 
 .btn.secondary:hover {
 	background: var(--primary-light);
-	border-color: #cbd5e1;
+	border-color: var(--border-color);
 }
 
 .btn.primary {
@@ -471,13 +471,13 @@ select {
 	width: 100%;
 	padding: 12px 14px;
 	border-radius: 8px;
-	border: 1px solid #cbd5e1;
+	border: 1px solid var(--border-color);
 	background: var(--surface);
 	font-size: 16px;
 	/* Prevents zoom on iOS */
 	transition: border-color 0.2s ease;
 	font-family: inherit;
-	color: #1e293b;
+	color: var(--text);
 }
 
 input:focus,
@@ -496,7 +496,7 @@ label {
 	display: block;
 	margin-bottom: 6px;
 	font-weight: 600;
-	color: #334155;
+	color: var(--text);
 	font-size: 14px;
 }
 
@@ -531,7 +531,7 @@ label {
 		background: var(--surface);
 		position: relative;
 		z-index: 1001;
-		border-bottom: 1px solid #e2e8f0;
+		border-bottom: 1px solid var(--border-color);
 	}
 
 	.mobile-menu-btn {
@@ -551,7 +551,7 @@ label {
 		max-height: 0;
 		overflow: hidden;
 		transition: max-height 0.3s ease;
-		border-bottom: 1px solid #e2e8f0;
+		border-bottom: 1px solid var(--border-color);
 	}
 
 	.nav-links.open {
@@ -565,7 +565,7 @@ label {
 		width: 100%;
 		text-align: left;
 		padding: 16px 20px;
-		border-bottom: 1px solid #f1f5f9;
+		border-bottom: 1px solid var(--border-color);
 		border-radius: 0;
 	}
 
@@ -577,7 +577,7 @@ label {
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 12px;
-		background: #f8fafc;
+		background: var(--surface-light);
 	}
 
 	.user-profile-widget {
@@ -771,10 +771,10 @@ label {
 		bottom: 0;
 		left: 0;
 		width: 100%;
-		background: rgba(10, 13, 25, 0.88);
+		background: var(--glass-bg);
 		backdrop-filter: blur(20px);
 		-webkit-backdrop-filter: blur(20px);
-		border-top: 1px solid rgba(255, 255, 255, 0.07);
+		border-top: 1px solid var(--border-color);
 		display: flex;
 		justify-content: space-around;
 		align-items: flex-end;
@@ -794,16 +794,16 @@ label {
 		padding: 4px 12px 6px;
 		cursor: pointer;
 		transition: color 0.15s;
-		color: #475569;
+		color: var(--text-muted);
 		min-width: 56px;
 	}
 
 	.bottom-nav-item.active {
-		color: #d8b4fe;
+		color: var(--accent-color);
 	}
 
 	.bottom-nav-item:hover {
-		color: #94a3b8;
+		color: var(--text-muted);
 	}
 
 	/* Icon wrapper — positions the active dot */
@@ -860,7 +860,7 @@ label {
 	width: 100%;
 	padding: 14px 20px 14px 45px;
 	font-size: 16px;
-	border: 1px solid #e2e8f0;
+	border: 1px solid var(--border-color);
 	border-radius: 16px;
 	background: var(--surface);
 	transition: all 0.2s ease;
@@ -898,11 +898,11 @@ label {
 .filter-select {
 	padding: 10px 16px;
 	border-radius: 12px;
-	border: 1px solid #e2e8f0;
+	border: 1px solid var(--border-color);
 	background: var(--surface);
 	font-size: 14px;
 	font-weight: 500;
-	color: #475569;
+	color: var(--text);
 	cursor: pointer;
 	appearance: none;
 	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -921,7 +921,7 @@ label {
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
-	border: 1px solid #e2e8f0;
+	border: 1px solid var(--border-color);
 }
 
 .ticket-header {
@@ -958,14 +958,14 @@ label {
 
 .ticket-dashed {
 	width: 100%;
-	border-top: 2px dashed #e2e8f0;
+	border-top: 2px dashed var(--border-color);
 	margin: 10px 0;
 }
 
 /* Loaders / Skeletons */
 .skeleton {
-	background: #e2e8f0;
-	background-image: linear-gradient(90deg, #e2e8f0 0px, #f1f5f9 40px, #e2e8f0 80px);
+	background: var(--surface-light);
+	background-image: linear-gradient(90deg, var(--surface-light) 0px, var(--surface) 40px, var(--surface-light) 80px);
 	background-size: 200px 100%;
 	animation: skeleton-loading 1.5s infinite linear;
 	border-radius: 4px;
@@ -1104,7 +1104,7 @@ label {
 	position: relative;
 	overflow: hidden;
 	margin-bottom: 32px;
-	background: #000;
+	background: var(--bg);
 }
 
 .hero-slide {
@@ -1136,7 +1136,7 @@ label {
 	left: 0;
 	width: 100%;
 	padding: 80px 20px 40px;
-	background: linear-gradient(to top, rgba(2, 6, 23, 1) 0%, rgba(2, 6, 23, 0) 100%);
+	background: linear-gradient(to top, var(--bg) 0%, transparent 100%);
 	z-index: 2;
 }
 
@@ -1156,7 +1156,7 @@ label {
 	color: var(--text);
 	font-weight: 600;
 	font-size: 14px;
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	border: 1px solid var(--border-color);
 	cursor: pointer;
 	white-space: nowrap;
 	transition: all 0.2s ease;
@@ -1165,8 +1165,8 @@ label {
 }
 
 .pill:hover {
-	background: rgba(255, 255, 255, 0.1);
-	border-color: rgba(255, 255, 255, 0.2);
+	background: var(--glass-bg);
+	border-color: var(--accent-color);
 }
 
 .pill.active {

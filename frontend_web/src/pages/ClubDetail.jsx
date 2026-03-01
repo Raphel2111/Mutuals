@@ -26,7 +26,7 @@ export default function ClubDetail({ clubId, onBack }) {
     const [events, setEvents] = useState([]);
     const [wallPosts, setWallPosts] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
-    const [tab, setTab] = useState('feed');
+    const [tab, setTab] = useState('comunidad');
     const [invitations, setInvitations] = useState([]);
     const [myToken, setMyToken] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -134,7 +134,6 @@ export default function ClubDetail({ clubId, onBack }) {
 
     // Tabs visible based on role
     const tabs = [
-        { key: 'feed', label: '📢 Anuncios', always: true },
         { key: 'comunidad', label: '💬 Comunidad', always: true },
         { key: 'eventos', label: '📅 Eventos', always: true },
         { key: 'miembros', label: `👥 ${members.length}`, always: true },
@@ -200,8 +199,8 @@ export default function ClubDetail({ clubId, onBack }) {
                 ))}
             </div>
 
-            {/* ── FEED / NOTICIAS ── */}
-            {tab === 'feed' && (
+            {/* ── COMUNIDAD (CHAT DINÁMICO) ── */}
+            {tab === 'comunidad' && (
                 <div className="cd-feed">
                     {club.my_membership_status === 'approved' && (
                         <div className="cd-membership-card btn-shimmer" style={{ marginBottom: 24 }}>
@@ -223,39 +222,6 @@ export default function ClubDetail({ clubId, onBack }) {
                         </div>
                     )}
 
-                    {/* Create post (admin only) */}
-                    {canPost && <CreatePostBox clubId={clubId} onCreated={load} />}
-                    {/* Gate for non-members */}
-                    {!canSee && (
-                        <div className="cd-gate">
-                            <p>🔒 Únete al club para ver las publicaciones de los organizadores.</p>
-                            <button className="cd-btn-join btn-shimmer" onClick={() => setShowJoin(true)}>
-                                {club.is_private ? 'Solicitar acceso' : 'Unirse gratis'}
-                            </button>
-                        </div>
-                    )}
-                    {canSee && posts.length === 0 && (
-                        <div className="cd-empty">
-                            <p style={{ fontSize: 36, margin: '0 0 10px' }}>📭</p>
-                            <p>Aún no hay posts en este club.</p>
-                            {canPost && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sé el primero en publicar algo arriba ↑</p>}
-                        </div>
-                    )}
-                    {canSee && posts.map(post => (
-                        <ClubPostCard key={post.id} post={post} isAdmin={club.is_admin} onDelete={async () => {
-                            await axios.delete(`club-posts/${post.id}/`);
-                            load();
-                        }} onPin={async () => {
-                            await axios.patch(`club-posts/${post.id}/pin/`);
-                            load();
-                        }} />
-                    ))}
-                </div>
-            )}
-
-            {/* ── COMUNIDAD (CHAT DINÁMICO) ── */}
-            {tab === 'comunidad' && (
-                <div className="cd-feed">
                     {!canSee && (
                         <div className="cd-gate">
                             <p>🔒 Únete al club para participar en la comunidad.</p>

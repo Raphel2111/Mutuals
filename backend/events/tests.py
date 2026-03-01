@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from events.models import Event, Registration, DistributionGroup
+from events.models import Event, Registration, Club, ClubMembership
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.utils import timezone
@@ -51,49 +51,47 @@ class FunctionalLogicTest(TestCase):
         self.assertTrue(reg.entry_code, "El ticket debe tener código QR")
         print(f"✅ Ticket generado: {reg.entry_code}")
 
-    def test_02_group_admin_access_control(self):
-        """Test Group Admin flow: Create Group, Create Private Event, Logic Check"""
-        print("\n🧪 TEST 2: Flujo Admin de Grupo y Permisos")
+    def test_02_club_admin_access_control(self):
+        """Test Club Admin flow: Create Club, Create Private Event, Logic Check"""
+        print("\n🧪 TEST 2: Flujo Admin de Club y Permisos")
 
-        # 1. Create Group (authenticated as admin_user)
-        response = self.client_admin.post('/api/groups/', {
-            'name': 'Grupo VIP',
+        # 1. Create Club (authenticated as admin_user)
+        response = self.client_admin.post('/api/clubs/', {
+            'name': 'Club VIP',
             'description': 'Solo para gente VIP',
-            'is_public': False
+            'is_private': False
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        group_id = response.data['id']
-        print("✅ Grupo VIP creado")
+        club_id = response.data['id']
+        print("✅ Club VIP creado")
 
-        # 2. Create PRIVATE Event linked to Group
+        # 2. Create PRIVATE Event linked to Club
         response = self.client_admin.post('/api/events/', {
             'name': 'Fiesta Secreta',
             'date': (timezone.now() + timedelta(days=10)).isoformat(),
             'location': 'Bunker',
             'capacity': 50,
             'is_public': False,
-            'group': group_id
+            'club': club_id
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         event_id = response.data['id']
-        print("✅ Evento Privado (Grupo VIP) creado")
+        print("✅ Evento Privado (Club VIP) creado")
 
         # 3. Verify Normal User CANNOT see the private event
-        # Logic: Events endpoint filters private events unless you are a member
         response = self.client_user.get('/api/events/')
-        # Should NOT contain 'Fiesta Secreta'
         self.assertNotContains(response, "Fiesta Secreta")
         print("✅ Lógica de Privacidad correcta: Usuario normal NO ve el evento")
 
-        # 4. Add Normal User to Group (Simulate invitation/join)
-        group = DistributionGroup.objects.get(pk=group_id)
-        group.members.add(self.normal_user)
-        print("ℹ️  Usuario normal añadido al grupo VIP")
+        # 4. Add Normal User to Club (Simulate membership)
+        club = Club.objects.get(pk=club_id)
+        ClubMembership.objects.create(user=self.normal_user, club=club, status='approved')
+        print("ℹ️  Usuario normal añadido al club VIP")
 
         # 5. Verify Normal User NOW sees the event
         response = self.client_user.get('/api/events/')
         self.assertContains(response, "Fiesta Secreta")
-        print("✅ Lógica de Acceso correcta: Miembro del grupo VE el evento")
+        print("✅ Lógica de Acceso correcta: Miembro del club VE el evento")
 
     def test_03_qr_validation_logic(self):
         """Test logic for Validating QRs"""

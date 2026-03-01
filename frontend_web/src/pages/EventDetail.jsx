@@ -8,7 +8,7 @@ import '../components/GuestCheckoutModal.css';
 import { fetchCurrentUser } from '../auth';
 import axios from '../api';
 
-export default function EventDetail({ eventId, onBack, onViewGroup, onJoinLobby }) {
+export default function EventDetail({ eventId, onBack, onViewClub, onJoinLobby }) {
     const [event, setEvent] = useState(null);
     const [registrations, setRegistrations] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
@@ -209,13 +209,13 @@ export default function EventDetail({ eventId, onBack, onViewGroup, onJoinLobby 
                         )}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                        {event.group && onViewGroup && (
+                        {event.club && onViewClub && (
                             <button
                                 className="btn secondary"
-                                onClick={() => onViewGroup(event.group)}
+                                onClick={() => onViewClub(event.club)}
                                 style={{ fontSize: '14px', padding: '8px 16px', border: '1px solid rgba(255,255,255,0.1)' }}
                             >
-                                👥 Ver Grupo
+                                🏛️ Ver Club
                             </button>
                         )}
                         {registrations.length > 0 && onJoinLobby && (
@@ -307,9 +307,9 @@ export default function EventDetail({ eventId, onBack, onViewGroup, onJoinLobby 
                     </form>
                 )}
 
-                {event.group_name && (
+                {event.club_name && (
                     <div style={{ marginBottom: 16, padding: '12px', background: 'rgba(192, 132, 252, 0.05)', borderRadius: 8, border: '1px solid rgba(192, 132, 252, 0.2)' }}>
-                        <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>📂 Grupo:</span> {event.group_name}
+                        <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>🏛️ Club:</span> {event.club_name}
                     </div>
                 )}
                 {event.description && <p style={{ lineHeight: 1.6, color: 'var(--text)', marginBottom: 24 }}>{event.description}</p>}

@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import Event, Registration, EmailLog, DistributionGroup, Club, ClubMembership
-from .models import GroupAccessToken, GroupInvitation, Wallet, Transaction, TicketTier, TicketPurchase
+from .models import Event, Registration, EmailLog, Club, ClubMembership
+from .models import ClubInvitation, Wallet, Transaction, TicketTier, TicketPurchase
 
 
 @admin.register(Event)
@@ -36,32 +36,15 @@ class EmailLogAdmin(admin.ModelAdmin):
     search_fields = ('recipient', 'subject', 'error_text')
 
 
-@admin.register(DistributionGroup)
-class DistributionGroupAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
-    filter_horizontal = ('members', 'events', 'admins', 'creators')
-    search_fields = ('name',)
-
-
-@admin.register(GroupAccessToken)
-class GroupAccessTokenAdmin(admin.ModelAdmin):
-    list_display = ('id', 'group', 'token', 'created_at', 'active')
-    list_filter = ('active', 'created_at')
-    search_fields = ('token', 'group__name')
-    readonly_fields = ('token', 'created_at')
-
-
-@admin.register(GroupInvitation)
-class GroupInvitationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'group', 'created_by', 'created_at', 'expires_at', 'max_uses', 'use_count', 'active', 'is_valid')
+@admin.register(ClubInvitation)
+class ClubInvitationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'club', 'token', 'created_at', 'expires_at', 'active')
     list_filter = ('active', 'created_at', 'expires_at')
-    search_fields = ('token', 'group__name', 'created_by__username')
+    search_fields = ('token', 'club__name')
     readonly_fields = ('token', 'created_at')
-    
-    def is_valid(self, obj):
-        return obj.is_valid()
-    is_valid.boolean = True
-    is_valid.short_description = 'Válida'
+
+
+
 
 
 @admin.register(Wallet)

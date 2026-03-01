@@ -47,12 +47,10 @@ class IsEventAdminOrReadOnly(permissions.BasePermission):
         except Exception:
             pass
             
-        # Check if user is in group admins/creators (if event belongs to group)
+        # Check if user is in club admins (if event belongs to club)
         try:
-            if event.group:
-                if event.group.admins.filter(pk=request.user.pk).exists():
-                    return True
-                if event.group.creators.filter(pk=request.user.pk).exists():
+            if event.club:
+                if event.club.admins.filter(pk=request.user.pk).exists():
                     return True
         except Exception:
             pass
@@ -60,22 +58,19 @@ class IsEventAdminOrReadOnly(permissions.BasePermission):
         return False
 
 
-class IsGroupOrEventAdmin(permissions.BasePermission):
-    """Allow modifications only to group admins or event admins or staff.
+class IsClubOrEventAdmin(permissions.BasePermission):
+    """Allow modifications only to club admins or event admins or staff.
 
-    - If `obj` is a DistributionGroup, check `obj.admins`.
-    - If `obj` has an `event` attribute (Registration), check `event.admins`.
-    - For list/create, allow authenticated users to create but creator will be made admin.
+    - If `obj` is a Club, check `obj.admins`.
+    - If `obj` has an `event` attribute (Registration), check `event.admins` or `event.club.admins`.
     """
 
     def has_permission(self, request, view):
-        # Allow unauthenticated read-only access; require auth for create/update/delete
         if request.method in permissions.SAFE_METHODS:
             return True
         return request.user and request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        # Safe methods allowed
         if request.method in permissions.SAFE_METHODS:
             return True
 
@@ -83,19 +78,29 @@ class IsGroupOrEventAdmin(permissions.BasePermission):
         if user.is_staff:
             return True
 
-        # If obj is a DistributionGroup
-        if hasattr(obj, 'admins') and hasattr(obj, 'members'):
+        # If obj is a Club
+        if hasattr(obj, 'admins') and not hasattr(obj, 'event'):
+            # Basic heuristic for Club object vs Event
             return obj.admins.filter(pk=user.pk).exists()
 
-        # If obj has event attribute -> check event admins
-        if hasattr(obj, 'event') and obj.event is not None:
-            return obj.event.admins.filter(pk=user.pk).exists()
+        # If obj is an Event or has an event attribute
+        event = None
+        if hasattr(obj, 'admins'):
+            event = obj
+        elif hasattr(obj, 'event'):
+            event = obj.event
+
+        if event:
+            if event.admins.filter(pk=user.pk).exists():
+                return True
+            if event.club and event.club.admins.filter(pk=user.pk).exists():
+                return True
 
         return False
 
 
-class IsGroupAdminOrCreatorOrEventAdmin(permissions.BasePermission):
-    """Allow modifications when the user is group admin, group creator, event admin, or staff."""
+class IsClubAdminOrEventAdmin(permissions.BasePermission):
+    """Allow modifications when the user is club admin, event admin, or staff."""
 
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
@@ -109,13 +114,9 @@ class IsGroupAdminOrCreatorOrEventAdmin(permissions.BasePermission):
         if user.is_staff:
             return True
 
-        # DistributionGroup object
-        if hasattr(obj, 'admins') and hasattr(obj, 'members'):
-            if obj.admins.filter(pk=user.pk).exists():
-                return True
-            if obj.creators.filter(pk=user.pk).exists():
-                return True
-            return False
+        # Club object
+        if hasattr(obj, 'admins') and not hasattr(obj, 'event'):
+            return obj.admins.filter(pk=user.pk).exists()
 
         # Event object or object with event attribute
         event = None
@@ -125,12 +126,10 @@ class IsGroupAdminOrCreatorOrEventAdmin(permissions.BasePermission):
             event = obj.event
 
         if event is not None:
-            # event admins or group's creators/admins
+            # event admins or club admins
             if event.admins.filter(pk=user.pk).exists():
                 return True
-            if event.group:
-                if event.group.admins.filter(pk=user.pk).exists():
-                    return True
-                if event.group.creators.filter(pk=user.pk).exists():
+            if event.club:
+                if event.club.admins.filter(pk=user.pk).exists():
                     return True
         return False

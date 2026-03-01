@@ -3,10 +3,9 @@ import BrandLogo from './components/BrandLogo';
 import EventList from './pages/EventList';
 import RegistrationList from './pages/RegistrationList';
 import Wallet from './pages/Wallet';
-import GroupList from './pages/GroupList';
 import ClubList from './pages/ClubList';
 import SocialRadar from './pages/SocialRadar';
-import JoinGroup from './pages/JoinGroup';
+import JoinClub from './pages/JoinClub';
 import UserProfile from './pages/UserProfile';
 import ProfileSettings from './pages/ProfileSettings';
 import SocialProfile from './pages/SocialProfile';
@@ -176,7 +175,6 @@ function App() {
                                 <>
                                     <button className={`btn nav-item ${view === 'registrations' ? 'active' : ''}`} onClick={() => setView('registrations')}>Entradas</button>
                                     <button className={`btn nav-item ${view === 'wallet' ? 'active' : ''}`} onClick={() => setView('wallet')}>Cartera</button>
-                                    <button className={`btn nav-item ${view === 'groups' ? 'active' : ''}`} onClick={() => setView('groups')}>Grupos</button>
                                     <button className={`btn nav-item ${view === 'clubs' ? 'active' : ''}`} onClick={() => setView('clubs')}>Clubes</button>
                                     <button className={`btn nav-item ${view === 'radar' ? 'active' : ''}`} onClick={() => setView('radar')}>🌐 Radar</button>
                                 </>
@@ -254,11 +252,11 @@ function App() {
                         )}
                         {view === 'join' && (
                             <ErrorBoundary>
-                                <JoinGroup
+                                <JoinClub
                                     token={joinToken}
-                                    onSuccess={(groupId) => {
+                                    onSuccess={(clubId) => {
                                         window.location.hash = '';
-                                        setView('groups');
+                                        setView('clubs');
                                     }}
                                     onCancel={() => {
                                         window.location.hash = '';
@@ -273,9 +271,7 @@ function App() {
                         {view === 'wallet' && authenticated && (
                             <ErrorBoundary><Wallet userId={currentUser?.id} /></ErrorBoundary>
                         )}
-                        {view === 'groups' && authenticated && (
-                            <ErrorBoundary><GroupList /></ErrorBoundary>
-                        )}
+
                         {view === 'clubs' && authenticated && (
                             <ErrorBoundary><ClubList /></ErrorBoundary>
                         )}

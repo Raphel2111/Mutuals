@@ -26,31 +26,58 @@ export default function ClubDetail({ clubId, onBack }) {
     const [wallPosts, setWallPosts] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
     const [tab, setTab] = useState('feed');
+    const [invitations, setInvitations] = useState([]);
+    const [myToken, setMyToken] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [showJoin, setShowJoin] = useState(false);
     const [actionMsg, setMsg] = useState('');
 
     const load = async () => {
         setLoading(true);
         try {
-            const [cRes, mRes, pRes, fRes, wRes] = await Promise.all([
-                axios.get(`clubs/${clubId}/`),
-                axios.get(`clubs/${clubId}/members/`),
-                axios.get(`clubs/${clubId}/posts/`),
-                axios.get(`clubs/${clubId}/club_events/`),
-                axios.get(`clubs/${clubId}/wall/`),
-            ]);
+            // 1. Fetch main club info first
+            const cRes = await axios.get(`clubs/${clubId}/`);
             setClub(cRes.data);
-            setMembers(mRes.data);
-            setPosts(pRes.data);
-            setEvents(fRes.data);
-            setWallPosts(wRes.data);
-            if (cRes.data.is_admin) {
-                const reqRes = await axios.get(`clubs/${clubId}/pending/`);
-                setPending(reqRes.data);
+
+            // 2. Fetch other resources in parallel, but don't let them crash the whole page
+            const fetchSecondary = async () => {
+                const tryFetch = (url, setter) => axios.get(url).then(r => setter(r.data)).catch(e => console.warn(`Silent fail for ${url}:`, e));
+
+                await Promise.allSettled([
+                    tryFetch(`clubs/${clubId}/members/`, setMembers),
+                    tryFetch(`clubs/${clubId}/posts/`, setPosts),
+                    tryFetch(`clubs/${clubId}/club_events/`, setEvents),
+                    tryFetch(`clubs/${clubId}/wall/`, setWallPosts),
+                ]);
+
+                if (cRes.data.is_admin) {
+                    tryFetch(`clubs/${clubId}/pending/`, setPending);
+                    tryFetch(`clubs/${clubId}/invitations/`, setInvitations);
+                }
+
+                if (cRes.data.my_membership_status === 'approved' && currentUser) {
+                    axios.get(`club-tokens/?club=${clubId}&user=${currentUser.id}`)
+                        .then(tRes => {
+                            const items = tRes.data.results || tRes.data;
+                            if (items.length > 0) setMyToken(items[0]);
+                        })
+                        .catch(() => { });
+                }
+            };
+
+            fetchSecondary();
+        } catch (e) {
+            console.error('Error loading club:', e);
+            if (e.response?.status === 404) {
+                setError('Club no encontrado.');
+            } else {
+                setError('Error al cargar la información del club. Inténtalo de nuevo más tarde.');
             }
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+            setClub(null);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -68,6 +95,16 @@ export default function ClubDetail({ clubId, onBack }) {
     const handleApprove = (id) => doAction(() => axios.post(`club-memberships/${id}/approve/`));
     const handleReject = (id) => doAction(() => axios.post(`club-memberships/${id}/reject/`));
     const handleBadge = (id, badge) => doAction(() => axios.patch(`club-memberships/${id}/set_badge/`, { badge }));
+    const handleAddAdmin = (id) => doAction(() => axios.post(`club-memberships/${id}/add_admin/`));
+    const handleRemoveAdmin = (id) => doAction(() => axios.post(`club-memberships/${id}/remove_admin/`));
+    const handleGenerateToken = () => doAction(async () => {
+        const res = await axios.post('club-tokens/', { club: clubId, user: currentUser.id });
+        setMyToken(res.data);
+    });
+    const handleKick = (id) => {
+        if (!window.confirm('¿Eliminar miembro del club?')) return;
+        doAction(() => axios.post(`club-memberships/${id}/kick/`));
+    };
     const handleLeave = () => doAction(async () => { await axios.post(`clubs/${clubId}/leave/`); });
 
     if (loading) return (
@@ -77,7 +114,18 @@ export default function ClubDetail({ clubId, onBack }) {
             <div className="skeleton-box" style={{ height: 40, borderRadius: 10, marginBottom: 10 }} />
         </div>
     );
-    if (!club) return <div className="cd-page"><button className="cd-back" onClick={onBack}>← Clubs</button><p>Club no encontrado.</p></div>;
+    if (error || !club) return (
+        <div className="cd-page">
+            <button className="cd-back" onClick={onBack}>← Clubs</button>
+            <div className="cl-empty" style={{ paddingTop: '100px' }}>
+                <div style={{ fontSize: 48, marginBottom: 20 }}>{error?.includes('encontrado') ? '🔭' : '⚠️'}</div>
+                <h3>{error || 'Club no encontrado.'}</h3>
+                <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>ID consultado: {clubId}</p>
+                <button className="btn primary" onClick={onBack} style={{ marginTop: 24, width: 'auto' }}>Volver al listado</button>
+            </div>
+        </div>
+    );
+
 
     const isPaid = parseFloat(club.monthly_price) > 0 || parseFloat(club.annual_price) > 0;
     const canPost = club.is_admin;
@@ -90,6 +138,7 @@ export default function ClubDetail({ clubId, onBack }) {
         { key: 'eventos', label: '📅 Eventos', always: true },
         { key: 'miembros', label: `👥 ${members.length}`, always: true },
         ...(club.is_admin && pending.length > 0 ? [{ key: 'solicitudes', label: `⏳ ${pending.length}` }] : []),
+        ...(club.is_admin ? [{ key: 'invitaciones', label: '🎟️' }] : []),
         ...(club.is_admin ? [{ key: 'ajustes', label: '⚙️' }] : []),
     ];
 
@@ -150,9 +199,29 @@ export default function ClubDetail({ clubId, onBack }) {
                 ))}
             </div>
 
-            {/* ── FEED ── */}
+            {/* ── FEED / NOTICIAS ── */}
             {tab === 'feed' && (
                 <div className="cd-feed">
+                    {club.my_membership_status === 'approved' && (
+                        <div className="cd-membership-card btn-shimmer" style={{ marginBottom: 24 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>¡Hola, socio! 👋</h3>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Tu pase de acceso está listo.</p>
+                                </div>
+                                {myToken ? (
+                                    <div className="cd-mini-qr-wrap" onClick={() => window.open(myToken.qr_url, '_blank')}>
+                                        <img src={myToken.qr_url} alt="QR" style={{ width: 50, height: 50, borderRadius: 4, background: '#fff' }} />
+                                    </div>
+                                ) : (
+                                    <button className="cd-btn-approve" onClick={handleGenerateToken} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                                        Generar QR
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Create post (admin only) */}
                     {canPost && <CreatePostBox clubId={clubId} onCreated={load} />}
                     {/* Gate for non-members */}
@@ -234,24 +303,48 @@ export default function ClubDetail({ clubId, onBack }) {
             {/* ── MEMBERS ── */}
             {tab === 'miembros' && (
                 <div className="cd-members-grid">
-                    {members.length === 0 && <p style={{ color: '#64748b', textAlign: 'center', padding: '32px 0' }}>Aún no hay miembros aprobados.</p>}
-                    {members.map(m => (
-                        <div key={m.id} className="cd-member-card">
-                            <div className="cd-member-avatar">
-                                {m.avatar ? <img src={m.avatar} alt={m.username} /> : <span>{(m.full_name || m.username).slice(0, 2).toUpperCase()}</span>}
-                            </div>
-                            <div className="cd-member-info">
-                                <p className="cd-member-name">{m.full_name || m.username}</p>
-                                <p className="cd-member-meta">@{m.username} · {m.events_attended} eventos</p>
-                            </div>
-                            <span className="cd-member-badge">{BADGE_OPTIONS.find(b => b.value === m.badge)?.emoji} {m.badge_display}</span>
-                            {club.is_admin && (
-                                <select className="cd-badge-select" value={m.badge} onChange={e => handleBadge(m.id, e.target.value)}>
-                                    {BADGE_OPTIONS.map(b => <option key={b.value} value={b.value}>{b.emoji} {b.label}</option>)}
-                                </select>
-                            )}
+                    {club.is_admin && (
+                        <div className="cd-add-member-bar">
+                            <AddMemberAction clubId={clubId} onAdded={load} flash={flash} />
                         </div>
-                    ))}
+                    )}
+                    {members.length === 0 && <p style={{ color: '#64748b', textAlign: 'center', padding: '32px 0' }}>Aún no hay miembros aprobados.</p>}
+                    {members.map(m => {
+                        const isSelf = m.user_id === currentUser?.id;
+                        return (
+                            <div key={m.id} className="cd-member-card">
+                                <div className="cd-member-avatar">
+                                    {m.avatar ? <img src={m.avatar} alt={m.username} /> : <span>{(m.full_name || m.username).slice(0, 2).toUpperCase()}</span>}
+                                </div>
+                                <div className="cd-member-info">
+                                    <p className="cd-member-name">
+                                        {m.full_name || m.username}
+                                        {club.admins.includes(m.user_id) && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: 'var(--primary)' }}>[ADMIN]</span>}
+                                    </p>
+                                    <p className="cd-member-meta">@{m.username} · {m.events_attended} eventos</p>
+                                </div>
+
+                                <div className="cd-member-actions">
+                                    <span className="cd-member-badge">{BADGE_OPTIONS.find(b => b.value === m.badge)?.emoji} {m.badge_display}</span>
+                                    {club.is_admin && (
+                                        <div className="cd-admin-controls">
+                                            <select className="cd-badge-select" value={m.badge} onChange={e => handleBadge(m.id, e.target.value)}>
+                                                {BADGE_OPTIONS.map(b => <option key={b.value} value={b.value}>{b.emoji} {b.label}</option>)}
+                                            </select>
+                                            <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                                                {!club.admins.includes(m.user_id) ? (
+                                                    <button className="cd-mini-btn" onClick={() => handleAddAdmin(m.id)} title="Hacer Admin">👑</button>
+                                                ) : (
+                                                    <button className="cd-mini-btn" onClick={() => handleRemoveAdmin(m.id)} title="Quitar Admin">👤</button>
+                                                )}
+                                                {!isSelf && <button className="cd-mini-btn cd-del" onClick={() => handleKick(m.id)} title="Expulsar">✕</button>}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
@@ -277,6 +370,13 @@ export default function ClubDetail({ clubId, onBack }) {
                             {p.message && <p className="cd-pending-msg">"{p.message}"</p>}
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* ── INVITACIONES ── */}
+            {tab === 'invitaciones' && club.is_admin && (
+                <div className="cd-invites-panel">
+                    <ManageInvitations clubId={clubId} invitations={invitations} onUpdate={load} flash={flash} />
                 </div>
             )}
 
@@ -630,5 +730,107 @@ function ClubWallPostCard({ post, userId, isAdmin, onDelete }) {
                 </button>
             </div>
         </div>
+    );
+}
+
+// ── Manage Invitations ───────────────────────────────────────────────────────
+function ManageInvitations({ clubId, invitations, onUpdate, flash }) {
+    const [loading, setLoading] = useState(false);
+    const [days, setDays] = useState(7);
+    const [maxUses, setMaxUses] = useState('');
+
+    const createInvite = async () => {
+        setLoading(true);
+        try {
+            await axios.post(`clubs/${clubId}/create_invitation/`, {
+                expires_in_days: days,
+                max_uses: maxUses ? parseInt(maxUses) : null
+            });
+            onUpdate();
+            flash('✓ Invitación creada');
+        } catch (e) { console.error(e); }
+        finally { setLoading(false); }
+    };
+
+    const copyToClipboard = (url) => {
+        navigator.clipboard.writeText(url);
+        flash('📋 Copiado al portapapeles');
+    };
+
+    return (
+        <div className="cd-invites">
+            <h3 className="cd-settings-title">🎟️ Gestión de Invitaciones</h3>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>
+                Crea enlaces únicos para que otros se unan al club saltándose la aprobación manual.
+            </p>
+
+            <div className="cd-create-invite-box" style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', marginBottom: 4 }}>Días de validez</label>
+                        <input className="cd-input" type="number" value={days} onChange={e => setDays(e.target.value)} min="1" max="365" />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', marginBottom: 4 }}>Usos máx.</label>
+                        <input className="cd-input" type="number" value={maxUses} onChange={e => setMaxUses(e.target.value)} placeholder="∞ ilimitado" />
+                    </div>
+                </div>
+                <button className="cd-btn-save btn-shimmer" style={{ width: '100%' }} onClick={createInvite} disabled={loading}>
+                    {loading ? 'Generando...' : '➕ Generar enlace de invitación'}
+                </button>
+            </div>
+
+            <div className="cd-invites-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {invitations.length === 0 && <p style={{ textAlign: 'center', color: '#64748b', padding: '20px 0' }}>No hay enlaces activos.</p>}
+                {invitations.map(inv => (
+                    <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div className="cd-invite-info">
+                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#e2e8f0' }}>Token: {inv.token.slice(0, 6)}...{inv.token.slice(-4)}</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
+                                {inv.use_count} usos {inv.max_uses ? `/ ${inv.max_uses}` : ''} · Expira {new Date(inv.expires_at).toLocaleDateString()}
+                            </p>
+                        </div>
+                        <button className="cd-mini-btn" onClick={() => copyToClipboard(inv.url)} title="Copiar Link" style={{ fontSize: '1rem', padding: 8 }}>📋</button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── Add Member Component ─────────────────────────────────────────────────────
+function AddMemberAction({ clubId, onAdded, flash }) {
+    const [username, setUsername] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleAdd = async (e) => {
+        e.preventDefault();
+        if (!username.trim()) return;
+        setLoading(true);
+        try {
+            await axios.post(`clubs/${clubId}/add_member/`, { username: username.trim() });
+            setUsername('');
+            onAdded();
+            flash(`✓ ${username} añadido al club`);
+        } catch (e) {
+            flash(`❌ Error: ${e.response?.data?.detail || 'No se pudo añadir'}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleAdd} className="cd-add-member-form" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <input
+                className="cd-input"
+                placeholder="Añadir miembro por username..."
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                style={{ flex: 1, padding: '0 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.9rem' }}
+            />
+            <button className="cd-btn-save" type="submit" disabled={loading} style={{ width: 'auto', padding: '0 20px', fontSize: '0.85rem' }}>
+                {loading ? '...' : 'Añadir'}
+            </button>
+        </form>
     );
 }

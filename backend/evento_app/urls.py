@@ -5,8 +5,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import routers
 from events.views import EventViewSet, RegistrationViewSet, WalletViewSet, TransactionViewSet
-from events.views import DistributionGroupViewSet, ClubViewSet, ClubMembershipViewSet
-from events.views import GroupAccessTokenViewSet, ConnectionViewSet, EventPhotoViewSet, EventRatingViewSet
+from events.views import ClubViewSet, ClubMembershipViewSet, ClubAccessTokenViewSet
+from events.views import ConnectionViewSet, EventPhotoViewSet, EventRatingViewSet
 from events.views_clubs import ClubPostViewSet, ClubWallPostViewSet
 from notifications.views import NotificationViewSet, ReportViewSet
 from users.views import UserViewSet, OAuthCallbackView, InterestTagViewSet
@@ -25,8 +25,7 @@ from events.views_social import get_social_card
 router = routers.DefaultRouter()
 router.register(r'events', EventViewSet, basename='event')
 router.register(r'registrations', RegistrationViewSet, basename='registration')
-router.register(r'groups', DistributionGroupViewSet, basename='group')
-router.register(r'group-tokens', GroupAccessTokenViewSet, basename='groupaccesstoken')
+
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'interest-tags', InterestTagViewSet, basename='interesttag')
 router.register(r'wallets', WalletViewSet, basename='wallet')
@@ -40,6 +39,7 @@ router.register(r'notifications', NotificationViewSet, basename='notification')
 router.register(r'reports',       ReportViewSet,       basename='report')
 router.register(r'club-posts',    ClubPostViewSet,     basename='clubpost')
 router.register(r'club-wall-posts', ClubWallPostViewSet, basename='clubwallpost')
+router.register(r'club-tokens', ClubAccessTokenViewSet, basename='clubaccesstoken')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

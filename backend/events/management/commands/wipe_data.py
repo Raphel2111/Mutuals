@@ -1,8 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from events.models import (
-    Event, DistributionGroup, Registration, GroupAccessToken, 
-    GroupAccessRequest, AccessRequest, GroupInvitation, EmailLog,
+    Event, Registration, AccessRequest, Club, ClubMembership, ClubInvitation, EmailLog,
     Wallet, Transaction
 )
 from users.models import User
@@ -34,11 +33,10 @@ class Command(BaseCommand):
             self.stdout.write('Borrando Eventos...')
             Event.objects.all().delete()
             
-            self.stdout.write('Borrando Grupos y accesos...')
-            GroupAccessToken.objects.all().delete()
-            GroupInvitation.objects.all().delete()
-            GroupAccessRequest.objects.all().delete()
-            DistributionGroup.objects.all().delete()
+            self.stdout.write('Borrando Clubes y membresías...')
+            ClubInvitation.objects.all().delete()
+            ClubMembership.objects.all().delete()
+            Club.objects.all().delete()
             
             self.stdout.write('Borrando Usuarios (excepto Staff/Superusers)...')
             count, _ = User.objects.filter(is_staff=False, is_superuser=False).delete()

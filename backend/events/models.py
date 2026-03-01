@@ -11,8 +11,7 @@ class Event(models.Model):
     location = models.CharField(max_length=200)
     capacity = models.IntegerField()
     max_qr_codes = models.IntegerField(null=True, blank=True, help_text='Límite de códigos QR/registros para este evento. Dejar en blanco para ilimitado.')
-    # Relaciones de eventos: Grupos de RRPR o Clubes Privados
-    group = models.ForeignKey('DistributionGroup', on_delete=models.SET_NULL, null=True, blank=True, related_name='group_events')
+    # Relaciones de eventos: Clubes Privados
     club = models.ForeignKey('Club', on_delete=models.SET_NULL, null=True, blank=True, related_name='club_events', help_text='Club al que pertenece este evento (opcional)')
     admins = models.ManyToManyField(User, related_name='managed_events', blank=True)
     requires_approval = models.BooleanField(default=False, help_text='Si es True, las solicitudes de acceso requieren aprobación de un admin')
@@ -180,6 +179,25 @@ class ClubSubscription(models.Model):
     created_at           = models.DateTimeField(auto_now_add=True)
     updated_at           = models.DateTimeField(auto_now=True)
 
+class ClubAccessToken(models.Model):
+    """
+    Token de acceso recurrente para socios del club (ej. para entrar al local).
+    """
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='access_tokens')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
+    usage_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Token socio: {self.user.username} en {self.club.name}"
+
+    @property
+    def qr_url(self):
+        return generate_qr_code(self.token)
+
+
     def __str__(self):
         return f"{self.membership} | {self.plan} | {self.status}"
 
@@ -312,62 +330,9 @@ class EmailLog(models.Model):
         return f"Email to {self.recipient} ({'OK' if self.success else 'ERROR'})"
 
 
-class DistributionGroup(models.Model):
-    """Groups to distribute tickets/users to specific events.
-
-    - `name`: group name
-    - `members`: users that belong to this distribution group
-    - `events`: events associated to this group (tickets distributed to these events)
-    - `admins`: users who can manage the group
-    - `is_public`: if True, anyone can join; if False, requires approval
-    """
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True, help_text='Descripción del grupo')
-    logo = models.ImageField(upload_to='group_logos/', blank=True, null=True, help_text='Logo o imagen del grupo')
-    is_public = models.BooleanField(default=False, help_text='Si es público, cualquiera puede unirse. Si es privado, requiere aprobación.')
-    members = models.ManyToManyField(User, related_name='distribution_groups', blank=True)
-    events = models.ManyToManyField(Event, related_name='distribution_groups', blank=True)
-    admins = models.ManyToManyField(User, related_name='managed_distribution_groups', blank=True)
-    # Users allowed to create events within this group (in addition to admins)
-    creators = models.ManyToManyField(User, related_name='group_creations_allowed', blank=True)
-
-    def __str__(self):
-        return self.name
-
-
-class GroupAccessToken(models.Model):
-    """A per-user access token/QR code for a DistributionGroup.
-
-    Intended use: each user in a group may have one or more tokens that encode access
-    to group-related resources (QR, codes). Tokens can be created by group admins
-    or by designated creators.
-    """
-    group = models.ForeignKey(DistributionGroup, on_delete=models.CASCADE, related_name='access_tokens')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='group_access_tokens')
-    token = models.CharField(max_length=64, unique=True)
-    qr_code = models.ImageField(upload_to='group_tokens', blank=True)
-    active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    usage_count = models.IntegerField(default=0)
-
-    def save(self, *args, **kwargs):
-        # Generate a random token and QR code if missing
-        if not self.token:
-            import uuid
-            self.token = uuid.uuid4().hex
-        if not self.qr_code:
-            filename, file_obj = generate_qr_code(self.token)
-            if filename and file_obj:
-                self.qr_code.save(filename, file_obj, save=False)
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Token for {self.user.username} in {self.group.name}"
-
-
-class GroupInvitation(models.Model):
-    """Invitation link to join a group."""
-    group = models.ForeignKey(DistributionGroup, on_delete=models.CASCADE, related_name='invitations')
+class ClubInvitation(models.Model):
+    """Invitation link to join a club."""
+    club = models.ForeignKey('Club', on_delete=models.CASCADE, related_name='invitations')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_invitations')
     token = models.CharField(max_length=64, unique=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -393,32 +358,7 @@ class GroupInvitation(models.Model):
         return True
 
     def __str__(self):
-        return f"Invitation to {self.group.name} by {self.created_by.username}"
-
-
-class GroupAccessRequest(models.Model):
-    """Solicitud de acceso a un grupo que requiere aprobación."""
-    STATUS_CHOICES = [
-        ('pending', 'Pendiente'),
-        ('approved', 'Aprobada'),
-        ('rejected', 'Rechazada'),
-    ]
-    
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='group_access_requests')
-    group = models.ForeignKey(DistributionGroup, on_delete=models.CASCADE, related_name='access_requests')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    message = models.TextField(blank=True, help_text='Mensaje opcional del solicitante')
-    requested_at = models.DateTimeField(auto_now_add=True)
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_group_requests')
-    admin_notes = models.TextField(blank=True, help_text='Notas del administrador')
-    
-    class Meta:
-        unique_together = ['user', 'group']
-        ordering = ['-requested_at']
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.group.name} ({self.status})"
+        return f"Invitation to {self.club.name} by {self.created_by.username}"
 
 
 class Wallet(models.Model):

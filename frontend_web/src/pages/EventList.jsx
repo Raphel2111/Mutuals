@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from '../api';
 import EventDetail from './EventDetail';
-import GroupDetail from './GroupDetail';
+import ClubDetail from './ClubDetail';
 import EventCard from '../components/EventCard';
 import { fetchCurrentUser } from '../auth';
 
 export default function EventList(props) {
     const [events, setEvents] = useState([]);
     const [selectedEventId, setSelectedEventId] = useState(null);
-    const [selectedGroupId, setSelectedGroupId] = useState(null);
+    const [selectedClubId, setSelectedClubId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
 
@@ -17,8 +17,8 @@ export default function EventList(props) {
     const [visibilityFilter, setVisibilityFilter] = useState('all');
     const [isFreeFilter, setIsFreeFilter] = useState(false);
     const [orderBy, setOrderBy] = useState('-date');
-    const [groups, setGroups] = useState([]);
-    const [selectedGroup, setSelectedGroup] = useState('');
+    const [clubs, setClubs] = useState([]);
+    const [selectedClub, setSelectedClub] = useState('');
 
     const [favorites, setFavorites] = useState({});
     const [heroIndex, setHeroIndex] = useState(0);
@@ -62,15 +62,15 @@ export default function EventList(props) {
 
     useEffect(() => {
         fetchCurrentUser().then(u => setCurrentUser(u));
-        axios.get('groups/')
+        axios.get('clubs/')
             .then(res => {
                 const payload = res.data;
-                setGroups(Array.isArray(payload) ? payload : (payload.results || []));
+                setClubs(Array.isArray(payload) ? payload : (payload.results || []));
             })
-            .catch(err => console.error('Error loading groups:', err));
+            .catch(err => console.error('Error loading clubs:', err));
     }, []);
 
-    useEffect(() => { loadEvents(); }, [searchText, visibilityFilter, isFreeFilter, orderBy, selectedGroup]);
+    useEffect(() => { loadEvents(); }, [searchText, visibilityFilter, isFreeFilter, orderBy, selectedClub]);
 
     function loadEvents() {
         setLoading(true);
@@ -79,7 +79,7 @@ export default function EventList(props) {
         if (visibilityFilter !== 'all') params.visibility = visibilityFilter;
         if (isFreeFilter) params.is_free = 'true';
         if (orderBy) params.order_by = orderBy;
-        if (selectedGroup) params.group = selectedGroup;
+        if (selectedClub) params.club = selectedClub;
 
         axios.get('events/', { params })
             .then(res => {
@@ -123,15 +123,15 @@ export default function EventList(props) {
         setShowSuggestions(false);
     };
 
-    if (selectedGroupId) {
-        return <GroupDetail groupId={selectedGroupId} onBack={() => setSelectedGroupId(null)} />;
+    if (selectedClubId) {
+        return <ClubDetail clubId={selectedClubId} onBack={() => setSelectedClubId(null)} />;
     }
 
     if (selectedEventId) {
         return <EventDetail
             eventId={selectedEventId}
             onBack={() => setSelectedEventId(null)}
-            onViewGroup={(groupId) => { setSelectedEventId(null); setSelectedGroupId(groupId); }}
+            onViewClub={(clubId) => { setSelectedEventId(null); setSelectedClubId(clubId); }}
             onJoinLobby={props.onJoinLobby}
         />;
     }
@@ -164,7 +164,7 @@ export default function EventList(props) {
         <div className="container slide-up" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '80px' }}>
 
             {/* ── HERO CAROUSEL ── */}
-            {events.length > 0 && !searchText && visibilityFilter === 'all' && !selectedGroup && (
+            {events.length > 0 && !searchText && visibilityFilter === 'all' && !selectedClub && (
                 <div className="hero-carousel">
                     {events.slice(0, 3).map((ev, idx) => (
                         <div
@@ -261,17 +261,17 @@ export default function EventList(props) {
 
                 {/* Pill filters */}
                 <div className="pill-container">
-                    <button className={`pill ${visibilityFilter === 'all' && !selectedGroup && !isFreeFilter ? 'active' : ''}`}
-                        onClick={() => { setVisibilityFilter('all'); setSelectedGroup(''); setIsFreeFilter(false); setOrderBy('-date'); setInputValue(''); setSearchText(''); }}>
+                    <button className={`pill ${visibilityFilter === 'all' && !selectedClub && !isFreeFilter ? 'active' : ''}`}
+                        onClick={() => { setVisibilityFilter('all'); setSelectedClub(''); setIsFreeFilter(false); setOrderBy('-date'); setInputValue(''); setSearchText(''); }}>
                         🔥 Todos
                     </button>
                     <button className={`pill ${visibilityFilter === 'public' ? 'active' : ''}`} onClick={() => setVisibilityFilter('public')}>🌍 Públicos</button>
                     <button className={`pill ${visibilityFilter === 'private' ? 'active' : ''}`} onClick={() => setVisibilityFilter('private')}>🔒 Exclusivos</button>
                     <button className={`pill ${isFreeFilter ? 'active' : ''}`} onClick={() => setIsFreeFilter(!isFreeFilter)}>💸 Gratis</button>
                     <button className={`pill ${orderBy === 'date' ? 'active' : ''}`} onClick={() => setOrderBy('date')}>⏳ Próximos</button>
-                    {groups.slice(0, 3).map(g => (
-                        <button key={g.id} className={`pill ${selectedGroup === g.id.toString() ? 'active' : ''}`}
-                            onClick={() => setSelectedGroup(g.id.toString())}>📂 {g.name}</button>
+                    {clubs.slice(0, 3).map(g => (
+                        <button key={g.id} className={`pill ${selectedClub === g.id.toString() ? 'active' : ''}`}
+                            onClick={() => setSelectedClub(g.id.toString())}>📂 {g.name}</button>
                     ))}
                 </div>
             </div>
@@ -285,7 +285,7 @@ export default function EventList(props) {
                     </p>
                     <button className="btn btn-lg btn-shimmer"
                         style={{ background: 'var(--accent-gradient)', color: 'white', border: 'none', boxShadow: 'var(--shadow-glow)' }}
-                        onClick={() => { setInputValue(''); setSearchText(''); setVisibilityFilter('all'); setSelectedGroup(''); setIsFreeFilter(false); loadEvents(); }}>
+                        onClick={() => { setInputValue(''); setSearchText(''); setVisibilityFilter('all'); setSelectedClub(''); setIsFreeFilter(false); loadEvents(); }}>
                         Ver Eventos Top
                     </button>
                 </div>

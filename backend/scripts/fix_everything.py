@@ -8,62 +8,67 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'evento_app.settings')
 django.setup()
 
 from users.models import User
-from events.models import DistributionGroup, Event
+from events.models import Club, Event, ClubMembership
+from django.utils import timezone
 
 def fix_all():
     print("🚀 INICIANDO REPARACIÓN TOTAL 🚀")
     
-    # 1. Recuperar/Crear Grupo
-    group, _ = DistributionGroup.objects.get_or_create(
+    # 1. Recuperar/Crear Club
+    club, _ = Club.objects.get_or_create(
         name="Fallas 2026",
-        defaults={'description': 'Grupo Oficial', 'is_public': False}
+        defaults={'description': 'Club Oficial', 'is_private': False, 'slug': 'fallas-2026'}
     )
-    print(f"✅ Grupo 'Fallas 2026' (ID: {group.id}) listo.")
+    print(f"✅ Club 'Fallas 2026' (ID: {club.id}) listo.")
 
     # 2. Recuperar Usuario Admin
     admin_users = User.objects.filter(username__iexact='Admin')
     if not admin_users.exists():
-        print("❌ CRÍTICO: No existe usuario 'Admin'.")
-        return
-    
-    admin = admin_users.first()
+        admin = User.objects.filter(is_superuser=True).first()
+        if not admin:
+            print("❌ CRÍTICO: No existe usuario 'Admin' ni superusuario.")
+            return
+    else:
+        admin = admin_users.first()
     
     # 3. Forzar Permisos Admin
     admin.is_staff = True
     admin.is_superuser = True
     admin.save()
-    print(f"✅ Usuario 'Admin' (ID: {admin.id}) es Staff y Superuser.")
+    print(f"✅ Usuario '{admin.username}' (ID: {admin.id}) es Staff y Superuser.")
 
     # 4. Asegurar Membresía
-    group.members.add(admin)
-    group.admins.add(admin)
-    print("✅ Usuario 'Admin' añadido a MIEMBROS y ADMINS del grupo.")
+    ClubMembership.objects.get_or_create(
+        user=admin, club=club,
+        defaults={'status': 'approved', 'badge': 'founder', 'joined_at': timezone.now()}
+    )
+    club.admins.add(admin)
+    print(f"✅ Usuario '{admin.username}' añadido a MIEMBROS y ADMINS del club.")
 
-    # 5. Añadir TODOS los usuarios
+    # 5. Añadir TODOS los usuarios (opcional, pero para paridad con legacy)
     all_users = User.objects.all()
-    group.members.add(*all_users)
-    print(f"✅ Se han asegurado {all_users.count()} usuarios en el grupo.")
+    for user in all_users:
+        ClubMembership.objects.get_or_create(
+            user=user, club=club,
+            defaults={'status': 'approved', 'badge': 'member', 'joined_at': timezone.now()}
+        )
+    print(f"✅ Se han asegurado {all_users.count()} usuarios en el club.")
 
-    # 6. Vincular Evento 'Cena FM' (DOBLE VINCULACIÓN)
-    event = Event.objects.filter(name__icontains="Cena FM").first()
-    if event:
-        # Vinculación M2M (para que salga en los endpoints del grupo)
-        group.events.add(event)
-        
-        # Vinculación ForeignKey (para que salga en los endpoints de eventos)
-        event.group = group
+    # 6. Vincular Eventos
+    events = Event.objects.filter(name__icontains="Cena FM")
+    for event in events:
+        event.club = club
         event.save()
-        print(f"✅ Evento '{event.name}' (ID: {event.id}) totalmente vinculado (FK + M2M).")
-    else:
-        print("⚠️ No se encontró el evento 'Cena FM'.")
+        print(f"✅ Evento '{event.name}' (ID: {event.id}) vinculado al club.")
 
     # 7. Diagnóstico Final
-    is_member = group.members.filter(id=admin.id).exists()
-    print(f"🔎 COMPROBACIÓN FINAL: ¿Admin es miembro? {'SÍ' if is_member else 'NO'}")
+    is_member = ClubMembership.objects.filter(club=club, user=admin, status='approved').exists()
+    print(f"🔎 COMPROBACIÓN FINAL: ¿Admin es miembro aprobado? {'SÍ' if is_member else 'NO'}")
     if is_member:
         print("🎉 REPARACIÓN COMPLETADA CON ÉXITO.")
     else:
         print("💀 ALGO SALIÓ MAL (Check DB Constraints).")
+
 
 if __name__ == "__main__":
     fix_all()

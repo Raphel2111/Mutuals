@@ -6,7 +6,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'evento_app.settings')
 django.setup()
 
-from events.models import Event, DistributionGroup, Registration, Wallet, Transaction, AccessRequest, GroupAccessToken
+from events.models import Event, Club, ClubMembership, ClubInvitation, Registration, Wallet, Transaction, AccessRequest
 from users.models import User
 
 print("Cleaning up database...")
@@ -24,15 +24,18 @@ Wallet.objects.all().delete()
 print(f"Deleting {AccessRequest.objects.count()} access requests...")
 AccessRequest.objects.all().delete()
 
-print(f"Deleting {GroupAccessToken.objects.count()} group tokens...")
-GroupAccessToken.objects.all().delete()
+print(f"Deleting {ClubInvitation.objects.count()} club invitations...")
+ClubInvitation.objects.all().delete()
 
 # Delete Main Entities
 print(f"Deleting {Event.objects.count()} events...")
 Event.objects.all().delete()
 
-print(f"Deleting {DistributionGroup.objects.count()} groups...")
-DistributionGroup.objects.all().delete()
+print(f"Deleting {ClubMembership.objects.count()} club memberships...")
+ClubMembership.objects.all().delete()
+
+print(f"Deleting {Club.objects.count()} clubs...")
+Club.objects.all().delete()
 
 print(f"Deleting {User.objects.count()} users...")
 # Delete all users EXCEPT superusers if you want to keep admin access? 

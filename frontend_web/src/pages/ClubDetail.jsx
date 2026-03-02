@@ -684,6 +684,26 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
         } catch (e) { console.error(e); }
     };
 
+    // ── Image Attachment ──
+    const handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('La imagen debe pesar menos de 5MB');
+            return;
+        }
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setImagePreview(reader.result);
+        reader.readAsDataURL(file);
+    };
+
+    const clearImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     // ── Load older messages ──
     const loadOlder = async () => {
         if (!wallPosts.length) return;

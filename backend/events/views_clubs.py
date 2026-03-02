@@ -135,12 +135,13 @@ class ClubWallPostSerializer(serializers.ModelSerializer):
     )
     reply_preview = serializers.SerializerMethodField()
     image_url     = serializers.SerializerMethodField()
+    image         = serializers.ImageField(write_only=True, required=False)
 
     class Meta:
         model  = ClubWallPost
         fields = [
             'id', 'club', 'author_id', 'author_name', 'author_avatar',
-            'content', 'image_url', 'reply_to_id', 'reply_preview',
+            'content', 'image', 'image_url', 'reply_to_id', 'reply_preview',
             'like_count', 'user_liked', 'created_at', 'updated_at',
         ]
         read_only_fields = [

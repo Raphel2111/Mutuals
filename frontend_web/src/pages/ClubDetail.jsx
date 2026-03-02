@@ -864,8 +864,10 @@ function CommunityChat({ clubId, currentUser, isAdmin, members, wallPosts, setWa
                                     </div>
                                 )}
                                 {post.content && <p className="chat-msg-content">{renderContent(post.content)}</p>}
-                                <div className="chat-msg-actions">
+                                <div className="chat-msg-reactions">
                                     <ChatLikeBtn post={post} />
+                                </div>
+                                <div className="chat-msg-actions">
                                     <button className="chat-action-btn" onClick={() => { setReplyTo(post); inputRef.current?.focus(); }}>
                                         ↩️ Responder
                                     </button>
@@ -964,7 +966,7 @@ function ChatLikeBtn({ post }) {
         } catch (e) { console.error(e); }
     };
     return (
-        <button className={`chat-action-btn ${liked ? 'liked' : ''}`} onClick={toggle}>
+        <button className={`chat-reaction-btn ${liked ? 'liked' : ''}`} onClick={toggle}>
             {liked ? '❤️' : '🤍'} {count > 0 ? count : ''}
         </button>
     );

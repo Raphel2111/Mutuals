@@ -948,6 +948,40 @@
     max-width: 220px;
 }
 
+/* ── Message reactions ── */
+.chat-msg-reactions {
+    margin-top: 4px;
+    display: flex;
+    gap: 4px;
+}
+
+.chat-reaction-btn {
+    background: var(--bg-card, #1c1c1c);
+    border: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 12px;
+    transition: all 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.chat-reaction-btn:hover {
+    background: var(--glass-bg);
+    color: var(--text-main);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.chat-reaction-btn.liked {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
 /* ── Message actions ── */
 .chat-msg-actions {
     position: absolute;

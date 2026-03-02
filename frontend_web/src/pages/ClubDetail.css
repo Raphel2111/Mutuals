@@ -852,9 +852,7 @@
     }
 }
 
-.chat-message.own {
-    /* Kept for potential user highlights, but removed row-reverse to keep linear layout */
-}
+
 
 .chat-msg-avatar {
     width: 38px;
@@ -885,9 +883,7 @@
     position: relative;
 }
 
-.chat-message.own .chat-msg-body {
-    /* No special background for own messages in linear mode */
-}
+
 
 .chat-msg-header {
     display: flex;

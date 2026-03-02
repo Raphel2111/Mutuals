@@ -852,7 +852,9 @@
     }
 }
 
-
+.chat-message.own {
+    flex-direction: row-reverse;
+}
 
 .chat-msg-avatar {
     width: 38px;
@@ -892,6 +894,10 @@
     margin-bottom: 4px;
 }
 
+.chat-message.own .chat-msg-header {
+    flex-direction: row-reverse;
+}
+
 .chat-msg-author {
     font-size: 0.95rem;
     font-weight: 700;
@@ -913,6 +919,10 @@
     margin: 0;
     color: rgba(255, 255, 255, 0.9);
     word-break: break-word;
+}
+
+.chat-message.own .chat-msg-content {
+    text-align: right;
 }
 
 /* ── Reply preview ── */
@@ -953,6 +963,10 @@
     margin-top: 4px;
     display: flex;
     gap: 4px;
+}
+
+.chat-message.own .chat-msg-reactions {
+    justify-content: flex-end;
 }
 
 .chat-reaction-btn {
@@ -1250,6 +1264,10 @@
 .chat-msg-image {
     margin-top: 8px;
     margin-bottom: 8px;
+}
+
+.chat-message.own .chat-msg-image {
+    text-align: right;
 }
 
 .chat-msg-image img {
